@@ -1,17 +1,22 @@
 {
   "expo": {
-    "name": "Kapa",
-    "slug": "Kapa",
+    "name": "Kapa Protetores",
+    "slug": "kapa-protetores",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F1E8"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F1E8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +25,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A Kapa precisa acessar suas fotos para cadastrar o animal.",
+          "cameraPermission": "A Kapa precisa da câmera para fotografar o animal resgatado."
+        }
+      ]
+    ]
   }
 }
