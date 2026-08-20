@@ -115,8 +115,12 @@ export function CadastroAnimalScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <View style={styles.brandBar}>
+        <Text style={styles.logo}>KAPA</Text>
+        <Text style={styles.brandSub}>Protetores dos Animais</Text>
+      </View>
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
@@ -125,7 +129,6 @@ export function CadastroAnimalScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.kicker}>Kapa Protetores</Text>
             <Text style={styles.title}>Cadastro de animal</Text>
             <Text style={styles.subtitle}>
               Registre um resgate agora, ainda no campo ou no abrigo.
@@ -280,10 +283,30 @@ export function CadastroAnimalScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.orange,
   },
-  flex: {
+  brandBar: {
+    backgroundColor: colors.orange,
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 16,
+    gap: 2,
+  },
+  logo: {
+    color: colors.white,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
+  brandSub: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.92,
+  },
+  body: {
     flex: 1,
+    backgroundColor: colors.cream,
   },
   content: {
     paddingHorizontal: 20,
@@ -291,19 +314,12 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   header: {
-    paddingTop: 8,
+    paddingTop: 18,
     gap: 6,
-  },
-  kicker: {
-    color: colors.terracotta,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
   },
   title: {
     color: colors.ink,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
   },
   subtitle: {
@@ -320,7 +336,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   section: {
-    color: colors.forest,
+    color: colors.orangeDark,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -330,7 +346,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   save: {
-    backgroundColor: colors.terracotta,
+    backgroundColor: colors.orange,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',

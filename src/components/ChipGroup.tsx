@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   chipSelected: {
-    backgroundColor: colors.forest,
-    borderColor: colors.forest,
+    backgroundColor: colors.orange,
+    borderColor: colors.orange,
   },
   label: {
     color: colors.ink,

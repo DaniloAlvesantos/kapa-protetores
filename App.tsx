@@ -5,7 +5,7 @@ import { CadastroAnimalScreen } from './src/screens/CadastroAnimalScreen';
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <CadastroAnimalScreen />
     </SafeAreaProvider>
   );
