@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,11 +50,17 @@ export function CadastroAnimalScreen() {
   const [temperamento, setTemperamento] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const [sucesso, setSucesso] = useState<string>();
+  const [erroSalvar, setErroSalvar] = useState<string>();
+  const scrollRef = useRef<ScrollView>(null);
 
-  const podeSalvar = useMemo(
-    () => Boolean(fotoUri || nome.trim()) && Boolean(especie),
-    [fotoUri, nome, especie],
-  );
+  const fotoErro = tentouSalvar && !fotoUri ? 'Adicione uma foto do animal.' : undefined;
+  const nomeErro = tentouSalvar && !nome.trim() ? 'Preencha o nome do animal.' : undefined;
+  const pendentes = [
+    ...(fotoErro ? ['foto do animal'] : []),
+    ...(nomeErro ? ['nome'] : []),
+  ];
 
   function limpar() {
     setFotoUri(undefined);
@@ -73,11 +78,20 @@ export function CadastroAnimalScreen() {
     setVermifugado('nao_sei');
     setTemperamento('');
     setObservacoes('');
+    setTentouSalvar(false);
   }
 
   async function onSalvar() {
-    if (!podeSalvar) {
-      Alert.alert('Falta informação', 'Coloque o nome ou uma foto, e escolha a espécie.');
+    const pendentesAgora = [
+      ...(!fotoUri ? ['foto do animal'] : []),
+      ...(!nome.trim() ? ['nome'] : []),
+    ];
+    setTentouSalvar(true);
+    setSucesso(undefined);
+    setErroSalvar(undefined);
+
+    if (pendentesAgora.length > 0) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
 
@@ -104,10 +118,13 @@ export function CadastroAnimalScreen() {
         createdAt: new Date().toISOString(),
       });
 
-      Alert.alert('Animal cadastrado', `${nome.trim() || 'O animal'} foi registrado no app.`);
+      const nomeSalvo = nome.trim() || 'O animal';
       limpar();
+      setSucesso(`${nomeSalvo} foi cadastrado.`);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch {
-      Alert.alert('Não deu para salvar', 'Tente novamente em instantes.');
+      setErroSalvar('Não deu para salvar. Tente novamente em instantes.');
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
       setSalvando(false);
     }
@@ -124,6 +141,7 @@ export function CadastroAnimalScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -135,15 +153,49 @@ export function CadastroAnimalScreen() {
             </Text>
           </View>
 
-          <FotoPicker uri={fotoUri} onChange={setFotoUri} />
+          {pendentes.length > 0 ? (
+            <View style={styles.aviso}>
+              <Text style={styles.avisoTitulo}>Falta preencher</Text>
+              {pendentes.map((item) => (
+                <Text key={item} style={styles.avisoItem}>
+                  • {item}
+                </Text>
+              ))}
+            </View>
+          ) : null}
+
+          {sucesso ? (
+            <View style={styles.ok}>
+              <Text style={styles.okTexto}>{sucesso}</Text>
+            </View>
+          ) : null}
+
+          {erroSalvar ? (
+            <View style={styles.aviso}>
+              <Text style={styles.avisoTitulo}>{erroSalvar}</Text>
+            </View>
+          ) : null}
+
+          <FotoPicker
+            uri={fotoUri}
+            erro={fotoErro}
+            onChange={(uri) => {
+              setFotoUri(uri);
+              setSucesso(undefined);
+            }}
+          />
 
           <View style={styles.card}>
             <Text style={styles.section}>Quem é</Text>
             <CampoTexto
               label="Nome"
               value={nome}
-              onChangeText={setNome}
-              placeholder="Se ainda não tem, pode deixar em branco"
+              onChangeText={(texto) => {
+                setNome(texto);
+                setSucesso(undefined);
+              }}
+              placeholder="Como o animal vai ser chamado"
+              erro={nomeErro}
             />
             <Text style={styles.fieldLabel}>Espécie</Text>
             <ChipGroup
@@ -270,7 +322,7 @@ export function CadastroAnimalScreen() {
           <Pressable
             onPress={() => void onSalvar()}
             disabled={salvando}
-            style={[styles.save, (!podeSalvar || salvando) && styles.saveDisabled]}
+            style={[styles.save, salvando && styles.saveDisabled]}
           >
             <Text style={styles.saveText}>{salvando ? 'Salvando...' : 'Salvar cadastro'}</Text>
           </Pressable>
@@ -357,6 +409,36 @@ const styles = StyleSheet.create({
   saveText: {
     color: colors.white,
     fontSize: 16,
+    fontWeight: '800',
+  },
+  aviso: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 16,
+    padding: 14,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  avisoTitulo: {
+    color: colors.danger,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  avisoItem: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  ok: {
+    backgroundColor: colors.successSoft,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  okTexto: {
+    color: colors.success,
+    fontSize: 15,
     fontWeight: '800',
   },
 });

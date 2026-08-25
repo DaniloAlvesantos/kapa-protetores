@@ -7,9 +7,17 @@ type Props = {
   onChangeText: (text: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  erro?: string;
 };
 
-export function CampoTexto({ label, value, onChangeText, placeholder, multiline }: Props) {
+export function CampoTexto({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  multiline,
+  erro,
+}: Props) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
@@ -20,8 +28,9 @@ export function CampoTexto({ label, value, onChangeText, placeholder, multiline 
         placeholderTextColor={colors.inkMuted}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
-        style={[styles.input, multiline && styles.multiline]}
+        style={[styles.input, multiline && styles.multiline, erro && styles.inputErro]}
       />
+      {erro ? <Text style={styles.erro}>{erro}</Text> : null}
     </View>
   );
 }
@@ -49,5 +58,13 @@ const styles = StyleSheet.create({
   multiline: {
     minHeight: 96,
     paddingTop: 12,
+  },
+  inputErro: {
+    borderColor: colors.danger,
+  },
+  erro: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

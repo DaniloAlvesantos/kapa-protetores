@@ -9,4 +9,7 @@ export const colors = {
   inkMuted: '#6B6B6B',
   line: '#F0E4D4',
   danger: '#E53935',
+  dangerSoft: '#FDECEA',
+  success: '#2F6F5E',
+  successSoft: '#E4F0EC',
 } as const;
