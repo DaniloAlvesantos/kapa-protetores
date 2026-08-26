@@ -3,6 +3,7 @@
     "name": "Kapa Protetores",
     "slug": "kapa-protetores",
     "version": "1.0.0",
+    "scheme": "kapa-protetores",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -24,9 +25,19 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "name": "Kapa Protetores",
+      "shortName": "Kapa",
+      "description": "Plataforma Kapa para protetores de animais",
+      "themeColor": "#F39200",
+      "backgroundColor": "#FFFFFF",
+      "display": "standalone",
+      "startUrl": "/"
     },
     "plugins": [
+      "expo-router",
       [
         "expo-image-picker",
         {

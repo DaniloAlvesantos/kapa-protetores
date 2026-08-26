@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CampoTexto } from '../components/CampoTexto';
-import { ChipGroup } from '../components/ChipGroup';
+import { PrimaryChipGroup } from '../components/chips/primaryChip';
 import { FotoPicker } from '../components/FotoPicker';
 import { saveAnimal } from '../storage/animals';
 import { colors } from '../theme/colors';
@@ -43,7 +43,8 @@ export function CadastroAnimalScreen() {
   const [corPelagem, setCorPelagem] = useState('');
   const [dataResgate, setDataResgate] = useState(hojeBr);
   const [localResgate, setLocalResgate] = useState('');
-  const [condicaoChegada, setCondicaoChegada] = useState<CondicaoChegada>('saudavel');
+  const [condicaoChegada, setCondicaoChegada] =
+    useState<CondicaoChegada>('saudavel');
   const [castrado, setCastrado] = useState<TriState>('nao_sei');
   const [vacinado, setVacinado] = useState<TriState>('nao_sei');
   const [vermifugado, setVermifugado] = useState<TriState>('nao_sei');
@@ -55,8 +56,10 @@ export function CadastroAnimalScreen() {
   const [erroSalvar, setErroSalvar] = useState<string>();
   const scrollRef = useRef<ScrollView>(null);
 
-  const fotoErro = tentouSalvar && !fotoUri ? 'Adicione uma foto do animal.' : undefined;
-  const nomeErro = tentouSalvar && !nome.trim() ? 'Preencha o nome do animal.' : undefined;
+  const fotoErro =
+    tentouSalvar && !fotoUri ? 'Adicione uma foto do animal.' : undefined;
+  const nomeErro =
+    tentouSalvar && !nome.trim() ? 'Preencha o nome do animal.' : undefined;
   const pendentes = [
     ...(fotoErro ? ['foto do animal'] : []),
     ...(nomeErro ? ['nome'] : []),
@@ -198,7 +201,7 @@ export function CadastroAnimalScreen() {
               erro={nomeErro}
             />
             <Text style={styles.fieldLabel}>Espécie</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={especie}
               onChange={setEspecie}
               options={[
@@ -208,7 +211,7 @@ export function CadastroAnimalScreen() {
               ]}
             />
             <Text style={styles.fieldLabel}>Sexo</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={sexo}
               onChange={setSexo}
               options={[
@@ -218,7 +221,7 @@ export function CadastroAnimalScreen() {
               ]}
             />
             <Text style={styles.fieldLabel}>Porte</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={porte}
               onChange={setPorte}
               options={[
@@ -256,7 +259,7 @@ export function CadastroAnimalScreen() {
               placeholder="Rua, bairro ou ponto de referência"
             />
             <Text style={styles.fieldLabel}>Condição na chegada</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={condicaoChegada}
               onChange={setCondicaoChegada}
               options={[
@@ -270,7 +273,7 @@ export function CadastroAnimalScreen() {
           <View style={styles.card}>
             <Text style={styles.section}>Saúde</Text>
             <Text style={styles.fieldLabel}>Castrado</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={castrado}
               onChange={setCastrado}
               options={[
@@ -280,7 +283,7 @@ export function CadastroAnimalScreen() {
               ]}
             />
             <Text style={styles.fieldLabel}>Vacinado</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={vacinado}
               onChange={setVacinado}
               options={[
@@ -290,7 +293,7 @@ export function CadastroAnimalScreen() {
               ]}
             />
             <Text style={styles.fieldLabel}>Vermifugado</Text>
-            <ChipGroup
+            <PrimaryChipGroup
               value={vermifugado}
               onChange={setVermifugado}
               options={[
@@ -324,7 +327,9 @@ export function CadastroAnimalScreen() {
             disabled={salvando}
             style={[styles.save, salvando && styles.saveDisabled]}
           >
-            <Text style={styles.saveText}>{salvando ? 'Salvando...' : 'Salvar cadastro'}</Text>
+            <Text style={styles.saveText}>
+              {salvando ? 'Salvando...' : 'Salvar cadastro'}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
