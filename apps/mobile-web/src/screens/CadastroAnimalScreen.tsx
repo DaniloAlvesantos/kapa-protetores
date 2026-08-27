@@ -9,18 +9,18 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CampoTexto } from '../components/CampoTexto';
-import { PrimaryChipGroup } from '../components/chips/primaryChip';
-import { FotoPicker } from '../components/FotoPicker';
-import { saveAnimal } from '../storage/animals';
-import { colors } from '../theme/colors';
+import { CampoTexto } from '@/components/formFields/inputText/primary';
+import { PrimaryChipGroup } from '@/components/chips/primaryChip';
+import { FotoPicker } from '@/components/FotoPicker';
+import { saveAnimal } from '@/storage/animals';
+import { colors } from '@/theme/colors';
 import type {
   CondicaoChegada,
   Especie,
   Porte,
   Sexo,
   TriState,
-} from '../types/animal';
+} from '@/types/animal';
 
 function hojeBr(): string {
   const now = new Date();
