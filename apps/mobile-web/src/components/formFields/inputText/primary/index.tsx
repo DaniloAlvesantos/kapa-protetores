@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import { primaryInputTextStyles as styles } from './styles';
-import { colors } from '@/theme/colors';
+import { palette } from '@/theme/colors';
 
 type Props = {
   label: string;
@@ -26,7 +26,7 @@ export function CampoTexto({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.inkMuted}
+        placeholderTextColor={palette.inkMuted}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
         style={[

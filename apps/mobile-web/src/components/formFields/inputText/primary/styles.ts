@@ -1,24 +1,24 @@
 import { StyleSheet } from 'react-native';
-import { colors } from '@/theme/colors';
+import { palette } from '@/theme/colors';
 
 export const primaryInputTextStyles = StyleSheet.create({
   wrap: {
     gap: 6,
   },
   label: {
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: palette.white,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: palette.line,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 16,
   },
   multiline: {
@@ -26,10 +26,10 @@ export const primaryInputTextStyles = StyleSheet.create({
     paddingTop: 12,
   },
   inputErro: {
-    borderColor: colors.danger,
+    borderColor: palette.danger,
   },
   erro: {
-    color: colors.danger,
+    color: palette.danger,
     fontSize: 12,
     fontWeight: '600',
   },
