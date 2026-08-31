@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "dev": "concurrently -n \"EXPO,SERVER\" -c \"cyan,green\" \"npm run dev:mobile\" \"npm run dev:server\"",

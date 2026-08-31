@@ -21,13 +21,7 @@ import type {
   Sexo,
   TriState,
 } from '@/types/animal';
-
-function hojeBr(): string {
-  const now = new Date();
-  const dia = String(now.getDate()).padStart(2, '0');
-  const mes = String(now.getMonth() + 1).padStart(2, '0');
-  return `${dia}/${mes}/${now.getFullYear()}`;
-}
+import { hojeBr } from '@kapa/shared/utils';
 
 function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

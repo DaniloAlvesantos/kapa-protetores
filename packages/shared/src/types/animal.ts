@@ -3,9 +3,9 @@ export type Sexo = 'macho' | 'femea' | 'nao_sei';
 export type Porte = 'pequeno' | 'medio' | 'grande';
 export type CondicaoChegada = 'saudavel' | 'ferido' | 'debilitado';
 export type TriState = 'sim' | 'nao' | 'nao_sei';
-export type StatusAnimal = 'resgatado';
+export type StatusAnimal = 'resgatado' | 'em_tratamento' | 'disponivel' | 'adotado';
 
-export type Animal = {
+export interface Animal {
   id: string;
   nome: string;
   especie: Especie;
@@ -24,4 +24,6 @@ export type Animal = {
   fotoUri?: string;
   status: StatusAnimal;
   createdAt: string;
-};
+}
+
+export type CreateAnimalInput = Omit<Animal, 'id' | 'createdAt'>;
