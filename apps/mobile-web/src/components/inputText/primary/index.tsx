@@ -11,7 +11,7 @@ type Props = {
   erro?: string;
 };
 
-export function CampoTexto({
+export function PrimaryInputText({
   label,
   value,
   onChangeText,

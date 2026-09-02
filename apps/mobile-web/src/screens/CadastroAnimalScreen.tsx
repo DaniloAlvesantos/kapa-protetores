@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CampoTexto } from '@/components/formFields/inputText/primary';
+import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { FotoPicker } from '@/components/photoPicker/profile';
 import { saveAnimal } from '@/storage/animals';
@@ -180,7 +180,7 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Quem é</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Nome"
               value={nome}
               onChangeText={(texto) => {
@@ -220,13 +220,13 @@ export function CadastroAnimalScreen() {
                 { value: 'grande', label: 'Grande' },
               ]}
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Idade aproximada"
               value={idadeAproximada}
               onChangeText={setIdadeAproximada}
               placeholder="Ex.: filhote, 2 anos, idoso"
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Cor / pelagem"
               value={corPelagem}
               onChangeText={setCorPelagem}
@@ -236,13 +236,13 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Resgate</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Data do resgate"
               value={dataResgate}
               onChangeText={setDataResgate}
               placeholder="DD/MM/AAAA"
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Local do resgate"
               value={localResgate}
               onChangeText={setLocalResgate}
@@ -296,14 +296,14 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Temperamento</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Como o animal está"
               value={temperamento}
               onChangeText={setTemperamento}
               placeholder="Dócil, medroso, sociável com outros animais..."
               multiline
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Observações"
               value={observacoes}
               onChangeText={setObservacoes}

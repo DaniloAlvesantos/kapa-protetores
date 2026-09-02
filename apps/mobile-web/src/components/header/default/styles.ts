@@ -8,6 +8,7 @@ export const defaultHeaderStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: palette.cream,
   },
   logo: {},
   bellWrapper: {

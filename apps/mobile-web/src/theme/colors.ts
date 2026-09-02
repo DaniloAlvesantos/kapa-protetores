@@ -7,6 +7,7 @@ export const palette = {
   white: '#FFFFFF', // Cards / Modals
   ink: '#1C1C19', // Dark text
   inkMuted: '#58423b', // Secondary text / outline variants
+  inkSecondary: '#57423B',
   danger: '#BA1A1A', // Error states
   success: '#2F6F5E', // Success states
   line: '#F0E4D4',
@@ -35,6 +36,12 @@ export const colors = {
   onSecondaryContainer: '#375A82',
   errorContainer: '#FFDAD6',
   onErrorContainer: '#93000A',
+
+  secondaryInpuText: {
+    backgroundColor: '#F6F3EE',
+    borderColor: '#E5E2DD',
+    placeholderColor: '#57423B60',
+  },
 
   card: palette.white,
   tagBackground: palette.peach,
