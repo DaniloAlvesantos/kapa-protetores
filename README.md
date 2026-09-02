@@ -192,6 +192,46 @@ Conforme estabelecido nas [Diretrizes de Desenvolvimento (`AGENTS.md`)](./AGENTS
 
 ---
 
+## 👥 Colaboradores
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/DaniloAlvesantos" title="Github Danilo Alves">
+        <img src="https://avatars.githubusercontent.com/u/72460852?v=4" width="100px;" alt="Foto Danilo"/><br>
+        <sub>
+          <b>Danilo Alves</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/GusttavoMLima" title="Github Gustavao Marques">
+        <img src="https://avatars.githubusercontent.com/u/179064501?v=4" width="100px;" alt="Foto Gustavo"/><br>
+        <sub>
+          <b>Gustavo Marques</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/juliasbarbosa" title="Github Julia Barbosa">
+        <img src="https://avatars.githubusercontent.com/u/167313658?v=4" width="100px;" alt="Foto Julia"/><br>
+        <sub>
+          <b>Julia Barbosa</b>
+        </sub>
+      </a>
+    </td>
+     <td align="center">
+      <a href="https://github.com/AmabileSilverio" title="Github Amábile Silvério">
+        <img src="https://avatars.githubusercontent.com/u/179064545?v=4" width="100px;" alt="Foto Amábile"/><br>
+        <sub>
+          <b>Amábile Silvério</b>
+        </sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
+---
 ## 📄 Licença
 
 Distribuído sob a licença **MIT**. Consulte o arquivo [`LICENSE`](./LICENSE) para mais detalhes.
