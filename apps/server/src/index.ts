@@ -1,54 +1,44 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
-import { apiRouter } from './routes';
+import { App } from './App';
+import { InMemoryAnimalRepository } from './repositories/InMemoryAnimalRepository';
+import { AnimalService } from './services/AnimalService';
+import { HealthService } from './services/HealthService';
+import { AnimalsController } from './controllers/AnimalsController';
+import { HealthController } from './controllers/HealthController';
+import { AnimalsRouter } from './routes/AnimalsRouter';
+import { HealthRouter } from './routes/HealthRouter';
+import { ApiRouter } from './routes/ApiRouter';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 4000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:8081';
+const port = Number(process.env.PORT) || 4000;
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:8081';
 
-const allowedOrigins = [
-  CLIENT_URL,
-  'http://localhost:19006', // Legacy Expo web
-  'http://localhost:8081',  // Metro bundler web
-];
+// Composition Root (Dependency Injection / Inversion of Control)
+const animalRepository = new InMemoryAnimalRepository();
+const animalService = new AnimalService(animalRepository);
+const healthService = new HealthService();
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
-    credentials: true,
-  })
-);
+const animalsController = new AnimalsController(animalService);
+const healthController = new HealthController(healthService);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const animalsRouter = new AnimalsRouter(animalsController);
+const healthRouter = new HealthRouter(healthController);
 
-// Mount API routes
-app.use('/api', apiRouter);
+const apiRouter = new ApiRouter(healthRouter, animalsRouter);
 
-// Root fallback route
-app.get('/', (_req: Request, res: Response) => {
-  res.json({ message: 'Kapa Protetores API is running' });
-});
+const application = new App(apiRouter, { port, clientUrl });
 
-// Centralized error handling
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('[ServerError]:', err.message);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
+application.listen();
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🏥 Health check at http://localhost:${PORT}/api/health`);
-});
+// Graceful shutdown
+const handleShutdown = async (signal: string): Promise<void> => {
+  console.log(`\n[Server]: ${signal} received, closing HTTP server gracefully...`);
+  await application.close();
+  process.exit(0);
+};
+
+process.on('SIGINT', () => void handleShutdown('SIGINT'));
+process.on('SIGTERM', () => void handleShutdown('SIGTERM'));
+
+export { application };

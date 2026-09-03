@@ -1,11 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { HealthService } from '../services/HealthService';
+import { HealthController } from '../controllers/HealthController';
+import { HealthRouter } from './HealthRouter';
 
-export const healthRouter = Router();
+const healthService = new HealthService();
+const healthController = new HealthController(healthService);
+const healthRouterInstance = new HealthRouter(healthController);
 
-healthRouter.get('/', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
-});
+export const healthRouter = healthRouterInstance;
+export { HealthRouter };

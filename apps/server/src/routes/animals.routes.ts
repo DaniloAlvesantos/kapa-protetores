@@ -1,21 +1,12 @@
-import { Router, Request, Response } from 'express';
-import type { Animal } from '@kapa/shared';
+import { InMemoryAnimalRepository } from '../repositories/InMemoryAnimalRepository';
+import { AnimalService } from '../services/AnimalService';
+import { AnimalsController } from '../controllers/AnimalsController';
+import { AnimalsRouter } from './AnimalsRouter';
 
-export const animalsRouter = Router();
+const animalRepository = new InMemoryAnimalRepository();
+const animalService = new AnimalService(animalRepository);
+const animalsController = new AnimalsController(animalService);
+const animalsRouterInstance = new AnimalsRouter(animalsController);
 
-// In-memory placeholder/mock list
-const animals: Animal[] = [];
-
-animalsRouter.get('/', (_req: Request, res: Response) => {
-  res.json({ data: animals, count: animals.length });
-});
-
-animalsRouter.post('/', (req: Request, res: Response) => {
-  const animal: Animal = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    ...req.body,
-    createdAt: new Date().toISOString(),
-  };
-  animals.unshift(animal);
-  res.status(201).json({ message: 'Animal cadastrado com sucesso', data: animal });
-});
+export const animalsRouter = animalsRouterInstance;
+export { AnimalsRouter };

@@ -1,8 +1,7 @@
-import { Router } from 'express';
-import { healthRouter } from './health.routes';
 import { animalsRouter } from './animals.routes';
+import { ApiRouter } from './ApiRouter';
+import { healthRouter } from './health.routes';
 
-export const apiRouter = Router();
+const apiRouterInstance = new ApiRouter(healthRouter, animalsRouter);
 
-apiRouter.use('/health', healthRouter);
-apiRouter.use('/animals', animalsRouter);
+export const apiRouter = apiRouterInstance.router;
