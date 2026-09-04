@@ -1,10 +1,4 @@
-export interface IUser {
-  id: string;
-  email: string;
-  name?: string;
-  role?: string;
-  createdAt: string;
-}
+import { IUser } from '../interfaces/UserInterface';
 
 export class User implements IUser {
   public readonly id: string;
@@ -20,7 +14,8 @@ export class User implements IUser {
     role?: string;
     createdAt?: string;
   }) {
-    this.id = data.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this.id =
+      data.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     this.email = data.email;
     this.name = data.name;
     this.role = data.role || 'user';

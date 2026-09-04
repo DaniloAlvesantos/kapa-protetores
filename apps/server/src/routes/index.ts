@@ -4,4 +4,4 @@ import { healthRouter } from './health.routes';
 
 const apiRouterInstance = new ApiRouter(healthRouter, animalsRouter);
 
-export const apiRouter = apiRouterInstance.router;
+export const apiRouter = apiRouterInstance;
