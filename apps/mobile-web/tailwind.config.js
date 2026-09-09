@@ -3,6 +3,8 @@ module.exports = {
   content: [
     './app/**/*.{js,jsx,ts,tsx}',
     './src/**/*.{js,jsx,ts,tsx}',
+    './apps/mobile-web/app/**/*.{js,jsx,ts,tsx}',
+    './apps/mobile-web/src/**/*.{js,jsx,ts,tsx}',
   ],
   presets: [require('nativewind/preset')],
   theme: {
@@ -47,6 +49,17 @@ module.exports = {
         'xl': '20px',
         '2xl': '24px',
         'full': '9999px',
+      },
+      fontFamily: {
+        // Be Vietnam Pro (Headlines - DESIGN.md)
+        vietnam: ['BeVietnamPro-Regular'],
+        'vietnam-medium': ['BeVietnamPro-Medium'],
+        'vietnam-bold': ['BeVietnamPro-Bold'],
+        'vietnam-extrabold': ['BeVietnamPro-ExtraBold'],
+        // Plus Jakarta Sans (Body & Labels - DESIGN.md)
+        jakarta: ['PlusJakartaSans-Regular'],
+        'jakarta-light': ['PlusJakartaSans-Light'],
+        'jakarta-medium': ['PlusJakartaSans-Medium'],
       },
     },
   },

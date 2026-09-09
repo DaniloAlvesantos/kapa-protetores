@@ -1,4 +1,5 @@
 import '../global.css';
+
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
@@ -17,6 +18,7 @@ export default function RootLayout() {
     'BeVietnamPro-ExtraBold': require('../assets/fonts/BeVietnamPro-ExtraBold.ttf'),
     'BeVietnamPro-Medium': require('../assets/fonts/BeVietnamPro-Medium.ttf'),
     'BeVietnamPro-Regular': require('../assets/fonts/BeVietnamPro-Regular.ttf'),
+
     'PlusJakartaSans-Light': require('../assets/fonts/PlusJakartaSans-Light.ttf'),
     'PlusJakartaSans-Medium': require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
     'PlusJakartaSans-Regular': require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
@@ -34,7 +36,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: palette.cream }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: palette.cream,
+        }}
+      >
         <StatusBar style="light" />
 
         <Stack

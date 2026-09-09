@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from 'react';
+
 import {
   ActivityIndicator,
   Pressable,
@@ -9,6 +10,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+
+import { cn } from '@/utils/cn';
 import { palette } from '@/theme';
 
 export type PrimaryButtonSize = 'sm' | 'md' | 'lg';
@@ -29,7 +32,10 @@ export type PrimaryButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   fullWidth?: boolean;
   style?:
     | StyleProp<ViewStyle>
-    | ((state: { pressed: boolean; hovered?: boolean }) => StyleProp<ViewStyle>);
+    | ((state: {
+        pressed: boolean;
+        hovered?: boolean;
+      }) => StyleProp<ViewStyle>);
 };
 
 export const PrimaryButton = memo(
@@ -54,7 +60,10 @@ export const PrimaryButton = memo(
     ...rest
   }: PrimaryButtonProps) => {
     const isInteractive = !disabled && !loading;
-    const pressedBackgroundColor = pressedColor ?? (color ? undefined : palette.orangeDark);
+
+    const pressedBackgroundColor =
+      pressedColor ?? (color ? undefined : palette.orangeDark);
+
     const hasIcon = Boolean(icon) && !loading;
 
     const sizeClasses = {
@@ -103,7 +112,7 @@ export const PrimaryButton = memo(
       if (typeof children === 'string' || title) {
         return (
           <Text
-            className={`font-bold text-center ${textSizeClasses}`}
+            className={cn('font-bold text-center', textSizeClasses)}
             style={[{ color: textColor }, textStyle]}
           >
             {title ?? children}
@@ -115,16 +124,25 @@ export const PrimaryButton = memo(
     };
 
     const label =
-      accessibilityLabel ??
-      (typeof children === 'string' ? children : title);
+      accessibilityLabel ?? (typeof children === 'string' ? children : title);
+
+    const defaultStyles =
+      'flex-row items-center justify-center rounded-lg relative';
+
+    const buttonClassName = cn(
+      defaultStyles,
+      sizeClasses,
+      fullWidth ? 'w-full' : 'w-auto self-start',
+      iconPaddingClasses,
+      !isInteractive ? 'opacity-55' : 'active:scale-[0.99]',
+      !color && 'bg-orange active:bg-orange-dark',
+      className,
+    );
 
     return (
       <Pressable
-        className={`flex-row items-center justify-center rounded-lg relative ${sizeClasses} ${
-          fullWidth ? 'w-full' : 'w-auto self-start'
-        } ${iconPaddingClasses} ${!color ? 'bg-orange active:bg-orange-dark' : ''} ${
-          !isInteractive ? 'opacity-55' : 'active:scale-[0.99]'
-        } ${className ?? ''}`}
+        {...rest}
+        className={buttonClassName}
         disabled={!isInteractive}
         accessibilityRole={accessibilityRole}
         accessibilityLabel={label}
@@ -139,16 +157,19 @@ export const PrimaryButton = memo(
             : null,
           typeof style === 'function' ? style(state) : style,
         ]}
-        {...rest}
       >
         {hasIcon && (
           <View
-            className={`absolute top-0 bottom-0 justify-center items-center ${iconPositionClasses}`}
+            className={cn(
+              'absolute top-0 bottom-0 justify-center items-center',
+              iconPositionClasses,
+            )}
             pointerEvents="none"
           >
             {icon}
           </View>
         )}
+
         {renderContent()}
       </Pressable>
     );
