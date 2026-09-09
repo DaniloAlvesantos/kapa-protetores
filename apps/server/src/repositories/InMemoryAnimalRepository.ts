@@ -1,7 +1,7 @@
-import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
+import { IAnimalRepository } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 
-export class InMemoryAnimalRepository implements AnimalRepositoryInterface {
+export class InMemoryAnimalRepository implements IAnimalRepository {
   private readonly animals: Animal[] = [];
 
   public async findAll(): Promise<Animal[]> {

@@ -1,0 +1,82 @@
+// Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Especie {
+  cao
+  gato
+  outro
+}
+
+enum Sexo {
+  macho
+  femea
+  nao_sei
+}
+
+enum Porte {
+  pequeno
+  medio
+  grande
+}
+
+enum CondicaoChegada {
+  saudavel
+  ferido
+  debilitado
+}
+
+enum TriState {
+  sim
+  nao
+  nao_sei
+}
+
+enum StatusAnimal {
+  resgatado
+  em_tratamento
+  disponivel
+  adotado
+}
+
+model Animal {
+  id               String          @id @default(uuid())
+  nome             String
+  especie          Especie
+  sexo             Sexo
+  porte            Porte
+  idadeAproximada  String          @map("idade_aproximada")
+  corPelagem       String          @map("cor_pelagem")
+  dataResgate      String          @map("data_resgate")
+  localResgate     String          @map("local_resgate")
+  condicaoChegada  CondicaoChegada @map("condicao_chegada")
+  castrado         TriState
+  vacinado         TriState
+  vermifugado      TriState
+  temperamento     String
+  observacoes      String
+  fotoUri          String?         @map("foto_uri")
+  status           StatusAnimal    @default(resgatado)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@map("animals")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("user")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
