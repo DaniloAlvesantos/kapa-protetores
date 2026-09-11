@@ -9,7 +9,7 @@ export class InMemoryAnimalRepository implements IAnimalRepository {
   }
 
   public async findById(id: string): Promise<Animal | null> {
-    const animal = this.animals.find((a) => a.id === id);
+    const animal = this.animals.find((a) => a.getId()?.getValue() === id);
     return animal ?? null;
   }
 
