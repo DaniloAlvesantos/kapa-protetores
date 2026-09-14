@@ -7,6 +7,8 @@ import { EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
 import GoogleSvg from '@/../assets/google.svg';
 
+import { useAuth } from '@/hooks/useAuth';
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
@@ -15,13 +17,19 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const { control } = useForm<LoginFormData>({
+  const { signIn } = useAuth();
+  const { control, handleSubmit } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
     },
   });
+
+  const onSubmit = () => {
+    signIn();
+  };
+
 
   return (
     <View className="px-4">
@@ -57,7 +65,11 @@ export function LoginForm() {
         <Text className="w-full text-sm font-semibold text-right text-orange cursor-pointer">
           Esqueceu a senha?
         </Text>
-        <PrimaryButton title="Entrar" className="mt-1" />
+        <PrimaryButton
+          title="Entrar"
+          className="mt-1"
+          onPress={handleSubmit(onSubmit)}
+        />
       </View>
 
       <View className="flex-row items-center w-full px-5 my-5">
