@@ -3,7 +3,18 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
+      "@/../assets/*.svg": ["./src/types/svg.d.ts"],
+      "@/../assets/*": ["./src/types/images.d.ts"],
       "@/*": ["./src/*"]
-    }
-  }
+    },
+    "types": ["nativewind/types"]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
 }
