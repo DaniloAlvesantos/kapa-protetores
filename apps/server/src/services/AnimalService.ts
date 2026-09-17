@@ -40,19 +40,25 @@ export class AnimalService {
     if (input.age !== undefined) animal.setAge(input.age);
     if (input.ageStage !== undefined) animal.setAgeStage(input.ageStage);
     if (input.size !== undefined) animal.setSize(input.size);
-    if (input.energyLevel !== undefined) animal.setEnergyLevel(input.energyLevel);
-    if (input.kidFriendly !== undefined) animal.setKidFriendly(input.kidFriendly);
+    if (input.energyLevel !== undefined)
+      animal.setEnergyLevel(input.energyLevel);
+    if (input.kidFriendly !== undefined)
+      animal.setKidFriendly(input.kidFriendly);
     if (input.noiseLevel !== undefined) animal.setNoiseLevel(input.noiseLevel);
-    if (input.apartmentFriendly !== undefined) animal.setApartamentFriendly(input.apartmentFriendly);
-    if (input.otherPetFriendly !== undefined) animal.setOtherPetFriendly(input.otherPetFriendly);
-    if (input.healthCondition !== undefined) animal.setHealthCondition(input.healthCondition);
+    if (input.apartmentFriendly !== undefined)
+      animal.setApartamentFriendly(input.apartmentFriendly);
+    if (input.otherPetFriendly !== undefined)
+      animal.setOtherPetFriendly(input.otherPetFriendly);
+    if (input.healthCondition !== undefined)
+      animal.setHealthCondition(input.healthCondition);
     if (input.castrated !== undefined) animal.setCastrated(input.castrated);
     if (input.vaccinated !== undefined) animal.setVaccinated(input.vaccinated);
     if (input.dewormed !== undefined) animal.setDewormed(input.dewormed);
     if (input.rescuedAt !== undefined) animal.setRescuedAt(input.rescuedAt);
     if (input.place !== undefined) animal.setPlace(input.place);
     if (input.mood !== undefined) animal.setMood(input.mood);
-    if (input.observations !== undefined) animal.setObservations(input.observations);
+    if (input.observations !== undefined)
+      animal.setObservations(input.observations);
     if (input.status !== undefined) animal.setStatus(input.status);
 
     return this.animalRepository.create(animal);

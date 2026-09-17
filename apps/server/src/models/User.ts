@@ -144,5 +144,3 @@ export class User implements IUser {
     return this.toDTO();
   }
 }
-
-
