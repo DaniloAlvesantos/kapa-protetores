@@ -8,13 +8,11 @@ export interface Option<T> {
 export const ESPECIE_OPTIONS: Option<Especie>[] = [
   { value: 'cao', label: 'Cão' },
   { value: 'gato', label: 'Gato' },
-  { value: 'outro', label: 'Outro' },
 ];
 
 export const SEXO_OPTIONS: Option<Sexo>[] = [
   { value: 'macho', label: 'Macho' },
   { value: 'femea', label: 'Fêmea' },
-  { value: 'nao_sei', label: 'Não sei' },
 ];
 
 export const PORTE_OPTIONS: Option<Porte>[] = [

@@ -6,6 +6,8 @@ import type {
   CondicaoChegada,
   TriState,
   StatusAnimal,
+  Temperamento,
+  DoseRecord,
 } from '@kapa/shared';
 
 export class Animal implements IAnimal {
@@ -22,7 +24,13 @@ export class Animal implements IAnimal {
   public castrado: TriState;
   public vacinado: TriState;
   public vermifugado: TriState;
-  public temperamento: string;
+  public v10PrimeiraDose?: DoseRecord;
+  public v10SegundaDose?: DoseRecord;
+  public vacinaRaiva?: DoseRecord;
+  public v10Doses?: DoseRecord[];
+  public vacinaRaivaDoses?: DoseRecord[];
+  public vermifugoDoses?: DoseRecord[];
+  public temperamento: Temperamento;
   public observacoes: string;
   public fotoUri?: string;
   public status: StatusAnimal;
@@ -42,6 +50,12 @@ export class Animal implements IAnimal {
     this.castrado = data.castrado;
     this.vacinado = data.vacinado;
     this.vermifugado = data.vermifugado;
+    this.v10PrimeiraDose = data.v10PrimeiraDose;
+    this.v10SegundaDose = data.v10SegundaDose;
+    this.vacinaRaiva = data.vacinaRaiva;
+    this.v10Doses = data.v10Doses;
+    this.vacinaRaivaDoses = data.vacinaRaivaDoses;
+    this.vermifugoDoses = data.vermifugoDoses;
     this.temperamento = data.temperamento;
     this.observacoes = data.observacoes;
     this.fotoUri = data.fotoUri;

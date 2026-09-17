@@ -22,6 +22,9 @@ const PrimaryChip = ({ selected, label, onPress }: ChipProps) => {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
       style={[styles.chip, selected && styles.chipSelected]}
     >
       <Text style={[styles.label, selected && styles.labelSelected]}>

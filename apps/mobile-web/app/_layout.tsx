@@ -7,6 +7,7 @@ import { palette } from '@/theme/colors';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,6 +50,8 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="cadastro-animal" />
+          <Stack.Screen name="cadastro-voluntario" />
         </Stack>
       </View>
     </SafeAreaProvider>

@@ -1,4 +1,9 @@
-import { Text, TextInput, View } from 'react-native';
+import {
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 import { primaryInputTextStyles as styles } from './styles';
 import { palette } from '@/theme/colors';
 
@@ -9,6 +14,9 @@ type Props = {
   placeholder?: string;
   multiline?: boolean;
   erro?: string;
+  keyboardType?: TextInputProps['keyboardType'];
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  maxLength?: number;
 };
 
 export function PrimaryInputText({
@@ -18,6 +26,9 @@ export function PrimaryInputText({
   placeholder,
   multiline,
   erro,
+  keyboardType,
+  autoCapitalize,
+  maxLength,
 }: Props) {
   return (
     <View style={styles.wrap}>
@@ -28,6 +39,11 @@ export function PrimaryInputText({
         placeholder={placeholder}
         placeholderTextColor={palette.inkMuted}
         multiline={multiline}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        maxLength={maxLength}
+        accessibilityLabel={label}
+        aria-invalid={Boolean(erro)}
         textAlignVertical={multiline ? 'top' : 'center'}
         style={[
           styles.input,
