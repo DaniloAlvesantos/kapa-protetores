@@ -1,13 +1,69 @@
 import { CreateUserInput, UserRole } from '@kapa/shared';
+import { OAuth2Client } from 'google-auth-library';
+import { AppError, ServiceError } from '../errors';
+import { User } from '../models';
+import { UserRepository } from '../repositories/UserRepository';
 import { Email } from '../domains/Email';
 import { UUID } from '../domains/UUID';
-import { AppError } from '../errors';
-import { UserRepository } from '../repositories/UserRepository';
-import { User } from '../models';
 import { Url } from '../domains/Url';
+import { DEFAULT_USER_ADOPTER_RULES } from '@kapa/shared';
+import { Encrypt } from '../utils/Encypt';
+
+const googleClient = new OAuth2Client();
 
 export class UserService {
   constructor(private readonly repository: UserRepository) {}
+
+  public async authenticateWithGoogle(idToken: string) {
+    const audiences = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_WEB_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+    ].filter((id): id is string => Boolean(id));
+
+    let ticket;
+
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: audiences.length > 0 ? audiences : undefined,
+      });
+    } catch {
+      throw AppError.unauthorized('Token do Google inválido ou expirado');
+    }
+
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email || !payload.email_verified) {
+      throw AppError.unauthorized('Email do Google não verificado');
+    }
+
+    const { name, email, picture } = payload;
+
+    if (!email) {
+      throw new ServiceError('Email não encontrado no payload do Google.');
+    }
+
+    const safeEmail = Email.create(email);
+    let user = await this.repository.findByEmail(safeEmail);
+
+    if (user) {
+      return user;
+    }
+
+    const username = name || email.split('@')[0];
+
+    user = await this.create({
+      username,
+      email,
+      avatar: picture ?? undefined,
+      role: 'adopter',
+      rules: Array.from(DEFAULT_USER_ADOPTER_RULES),
+    });
+
+    return user;
+  }
 
   public async getAll() {
     return this.repository.findAll();
@@ -66,11 +122,15 @@ export class UserService {
       throw AppError.badRequest('Username is required.');
     }
 
+    const hasedPassword = input.password
+      ? Encrypt.saltHash(input.password).toString('hex')
+      : undefined;
+
     const user = new User();
     user.setUsername(input.username);
     user.setEmail(input.email);
     user.setAvatar(input.avatar);
-    user.setPassword(input.password);
+    user.setPassword(hasedPassword);
     if (input.role) user.setRole(input.role satisfies UserRole);
     if (input.rules) user.setRules(input.rules);
     user.setLatitude(input.latitude);
@@ -91,8 +151,32 @@ export class UserService {
     return user;
   }
 
-  public async updatePassword(id: string, password: string) {
+  public async updatePassword(id: string, newPassword: string) {
     const safeId = UUID.create(id);
-    
+
+    let user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound('User not found with id: ' + safeId);
+    }
+
+    const hashedPassord = Encrypt.saltHash(newPassword).toString('hex');
+    const currentPassword = user.getPassword();
+
+    // if the passwords are the same, return the user
+    if (
+      currentPassword &&
+      Encrypt.verifySaltHash(currentPassword, hashedPassord)
+    ) {
+      return user;
+    }
+
+    user = await this.repository.updatePassword(safeId, hashedPassord);
+
+    if (!user) {
+      throw AppError.internal('Error on updating user password.');
+    }
+
+    return user;
   }
 }

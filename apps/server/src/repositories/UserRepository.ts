@@ -13,8 +13,8 @@ export class UserRepository implements IUserRepository {
   private mapToDomain(record: PrismaUser) {
     const user = new User();
     user.setId(record.id);
-    user.setUsername(record.id);
-    user.setEmail(record.id);
+    user.setUsername(record.username);
+    user.setEmail(record.email);
     user.setPassword(record.password);
     user.setAvatar(record.avatar);
     user.setRole(record.role);

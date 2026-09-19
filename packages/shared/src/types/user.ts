@@ -33,3 +33,11 @@ export interface UserProfile {
   avatar?: string | null;
   createdAt: string;
 }
+
+export interface UserJwt {
+  sub: string;
+  role: UserRole;
+  rules: string[];
+  username: string;
+  email: string;
+}

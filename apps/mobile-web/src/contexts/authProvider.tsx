@@ -1,3 +1,4 @@
+import { kapaService } from '@/services/kapaService';
 import { genericStorage } from '@/storage/genericStorage';
 import { router } from 'expo-router';
 import { createContext, ReactNode, useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ interface AuthContextProps {
   isReady: boolean;
   signIn: () => void;
   signOut: () => void;
+  handleGoogleLogin: (idToken: string) => void;
 }
 
 const AUTH_STORAGE_KEY = '@kapa:auth-state';
@@ -43,6 +45,23 @@ export function AuthProvider({ children }: AuthProviderProp) {
     router.replace('/signIn');
   };
 
+  const handleGoogleLogin = async (idToken: string) => {
+    try {
+      const response = await kapaService.post('/auth/google', {
+        idToken,
+      });
+
+      if (!response.data) {
+        throw new Error('Error on authentication.');
+      }
+
+      const data = response.data;
+      router.replace('/(protected)/(tabs)');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     async function loadStorageState() {
       try {
@@ -68,6 +87,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
         signIn,
         signOut,
         isReady,
+        handleGoogleLogin,
       }}
     >
       {children}
