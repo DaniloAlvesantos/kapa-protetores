@@ -56,6 +56,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
       }
 
       const data = response.data;
+      console.log('handleGoogleLogin', data);
       router.replace('/(protected)/(tabs)');
     } catch (err) {
       console.error(err);

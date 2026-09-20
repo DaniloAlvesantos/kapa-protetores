@@ -26,9 +26,11 @@
     "prisma": "^7.10.0"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
-    "unrs-resolver@1.12.2": true
+    "@prisma/engines": true,
+    "esbuild": true,
+    "prisma": true,
+    "unrs-resolver": true
   },
   "dependencies": {
     "expo": "~57.0.15",
