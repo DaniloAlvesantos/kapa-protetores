@@ -19,10 +19,14 @@
     "build:web": "npm run build:web --workspace=apps/mobile-web",
     "lint": "npm run lint --workspaces --if-present",
     "prisma:generate": "prisma generate",
-    "prisma:studio": "npm run prisma:studio --workspace=apps/server"
+    "prisma:studio": "npm run prisma:studio --workspace=apps/server",
+    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
+    "test": "npm run test --workspace=@kapa/server",
+    "prepare": "husky"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
     "prisma": "^7.10.0"
   },
   "allowScripts": {

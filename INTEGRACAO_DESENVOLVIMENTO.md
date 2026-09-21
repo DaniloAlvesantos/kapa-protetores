@@ -181,19 +181,19 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 
 ---
 
-## 6. Validação de Qualidade e Bateria de Testes
+## 6. Validação de Qualidade, Husky e Testes
 
-O projeto conta com verificações estritas de tipagem, linting e testes automatizados:
+O projeto conta com verificações automatizadas de qualidade através do **Husky** (`.husky/pre-commit`), executando linting, checagem de tipos e testes antes de cada commit:
 
 ```bash
-# 1. Bateria completa de testes unitários do backend (20 testes em 9 suítes)
-npm run test --workspace=@kapa/server
+# 1. Executar os hooks do pre-commit manualmente
+./.husky/pre-commit
 
-# 2. Verificação de tipos TypeScript no Backend
-npx tsc --noEmit --project apps/server/tsconfig.json
+# 2. Bateria de testes unitários do backend (20 testes em 9 suítes)
+npm test
 
-# 3. Verificação de tipos TypeScript no Mobile/Web
-npx tsc --noEmit --project apps/mobile-web/tsconfig.json
+# 3. Verificação de tipos TypeScript em todos os workspaces
+npm run type-check
 
 # 4. Verificação de Linting em todos os pacotes
 npm run lint
