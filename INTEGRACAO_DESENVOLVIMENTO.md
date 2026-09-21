@@ -1,191 +1,208 @@
 # Integração e Guia de Desenvolvimento — Kapa Protetores
 
-Este documento descreve as funcionalidades integradas no monorepo, com foco na autenticação via **Google OAuth**, conexão da interface com a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas comuns de ambiente.
+Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
 ---
 
-## 1. Resumo das Funcionalidades Integradas
+## 1. Arquitetura de Autenticação e Sessão
 
-### 1.1 Autenticação Google OAuth (`feature/google-auth`)
+A autenticação é centralizada e compartilhada entre a aplicação mobile/web (`apps/mobile-web`) e a API REST (`apps/server`).
 
-A autenticação social com o Google foi integrada tanto no cliente (React Native / Expo Web) quanto na API Node.js/Express:
+### 1.1 Autenticação Social com Google OAuth
 
-- **Fluxo no Cliente (`apps/mobile-web`)**:
-  - Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
-  - Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
-  - Extração resiliente de token: prioriza o `id_token` retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
-  - Integrado com o [`AuthProvider`](apps/mobile-web/src/contexts/authProvider.tsx) via método `handleGoogleLogin`:
-    - Dispara requisição HTTP `POST /api/auth/google` enviando `{ idToken }`.
-    - Registra log de debug contendo `{ token, user }`.
-    - Mantém a rotina de armazenamento em storage escrita e comentada para etapa posterior de persistência de sessão.
-    - Atualiza o estado `isLogged(true)` e redireciona o usuário para `/(protected)/(tabs)`.
+* **Fluxo no Cliente (`apps/mobile-web`)**:
+  * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
+  * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
+  * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
+  * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
 
-- **Fluxo no Backend (`apps/server`)**:
-  - Rota dedicada `POST /api/auth/google`.
-  - Validação do corpo da requisição via Zod (`googleAuthSchema`).
-  - Método [`UserService.authenticateWithGoogle`](apps/server/src/services/UserService.ts) com suporte dual de verificação:
+* **Fluxo no Backend (`apps/server`)**:
+  * Rota dedicada: `POST /api/auth/google`.
+  * Validação do corpo da requisição via Zod (`googleAuthSchema`).
+  * Método [`UserService.authenticateWithGoogle`](apps/server/src/services/UserService.ts) com suporte dual de verificação:
     1. **Google ID Token (JWT)**: Validação criptográfica com as chaves públicas oficiais do Google via `googleClient.verifyIdToken(...)`.
     2. **Google OAuth2 Access Token (`ya29...`)**: Validação de segurança via `googleClient.getTokenInfo(...)` e requisição ao endpoint OIDC `https://www.googleapis.com/oauth2/v3/userinfo`.
-  - Validação estrita de audiência (`audience`) contra os Client IDs configurados no projeto (`GOOGLE_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`).
-  - Verificação obrigatória de email confirmado (`email_verified === true`).
-  - **Find or Create**: Localiza o usuário cadastrado pelo email; caso não exista, cria automaticamente a conta com papel `adopter` e permissões padrão (`DEFAULT_USER_ADOPTER_RULES`).
-  - **Sincronização de Avatar**: Caso o usuário já exista e sua foto de perfil do Google seja atualizada ou divirja do banco, o avatar é atualizado automaticamente durante o login.
-  - Emissão de JWT próprio da aplicação via [`Jwt.generateToken`](apps/server/src/utils/Jwt.ts) contendo `sub`, `email`, `role`, `rules` e `username`.
+  * Validação estrita de audiência (`audience`) contra os Client IDs configurados no projeto (`GOOGLE_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`).
+  * Verificação obrigatória de email confirmado (`email_verified === true`).
+  * **Find or Create**: Localiza o usuário cadastrado pelo email; caso não exista, cria automaticamente a conta com papel `adopter` e permissões padrão (`DEFAULT_USER_ADOPTER_RULES`).
+  * **Sincronização de Avatar**: Caso o usuário já exista e sua foto de perfil do Google seja atualizada ou divirja do banco, o avatar é atualizado automaticamente durante o login.
+  * Emissão de JWT próprio da aplicação via [`Jwt.generateToken`](apps/server/src/utils/Jwt.ts) contendo `sub`, `email`, `role`, `rules` e `username`.
 
 ---
 
-### 1.2 Correções Críticas Realizadas Durante a Integração
+### 1.2 Autenticação Local (E-mail e Senha)
 
-1. **Erro HTTP 401 (Token Inválido ou Ausente)**:
-   - **Causa**: O hook padrão `Google.useAuthRequest` na web operava em modo de concessão implícita de `access_token` em vez de `id_token`. O backend esperava um JWT de 3 segmentos e falhava ao verificar tokens opacos.
-   - **Solução**: Migração para `Google.useIdTokenAuthRequest` no frontend e adição de suporte dual a ID Token e Access Token no `UserService` do backend, além da sincronização dos Client IDs no `.env` do servidor.
+* **Rotas da API**:
+  * `POST /api/users/signin` (ou `POST /api/users/login`): Login com credenciais.
+  * `POST /api/users/register`: Cadastro de novos adotantes.
 
-2. **Erro HTTP 500 (`P2021 TableDoesNotExist: tb_users`)**:
-   - **Causa**: O container Docker do PostgreSQL estava ativo, mas as migrations existentes do Prisma ainda não tinham sido executadas no banco.
-   - **Solução**: Execução de `npx prisma migrate deploy` aplicando as migrações `20260910141706_init` e `20260911102357_default_user_as_adopter`.
+* **Validação de Entrada (`apps/server/src/schemas/user.schema.ts`)**:
+  * **`signInSchema`**:
+    * `email`: Sanitizado com `.trim()`, `.toLowerCase()` e validado com formato de e-mail.
+    * `password`: Obrigatório (`min(1)`), preservando caracteres e espaços intencionais.
+  * **`registerSchema`**:
+    * `username`: `.trim()`, mínimo de 3 e máximo de 50 caracteres (compatível com a entidade de domínio `User`).
+    * `email`: Sanitizado em minúsculas e validado.
+    * `password`: Mínimo de 6 e máximo de 128 caracteres (previne DoS por sobrecarga de hashing em requisições abusivas).
+    * `avatar`: Opcional (`.nullish()`), aceitando URLs válidas ou string vazia `""` (que é convertida automaticamente para `null`).
+    * `latitude` e `longitude`: Opcionais (`.nullish()`), restritos aos limites geográficos válidos (`[-90, 90]` e `[-180, 180]`).
 
-3. **Erro `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string`**:
-   - **Causa**: Hoisting estático de importações ES Modules no Node.js. Ao importar as rotas, o `PrismaService` era instanciado antes da execução de `dotenv.config()`. Sem variáveis carregadas, o pool do `pg` conectava com senha `undefined`, falhando na autenticação SCRAM do PostgreSQL.
-   - **Solução**: Criação do módulo [`apps/server/src/config/env.ts`](apps/server/src/config/env.ts) importado no topo de `index.ts` e `PrismaService.ts`, além de encapsular o cliente `prisma` em um `Proxy` de inicialização preguiçosa (*lazy initialization*).
-
-4. **Preservação de Casing no Avatar (`Url.ts`)**:
-   - **Causa**: [`Url.create`](apps/server/src/domains/Url.ts) executava `.toLowerCase()` em toda a URL. Como os hashes e tokens de imagem de perfil do Google são em Base64 case-sensitive, a URL gerava erro 404 / imagem quebrada.
-   - **Solução**: Removido o `.toLowerCase()`. A construção via `new URL(trimmed)` normaliza apenas o protocolo e domínio em minúsculas, mantendo intactos caminhos, parâmetros de consulta e identificadores sensíveis a maiúsculas/minúsculas.
-
-5. **Incompatibilidade de Versões React (`19.2.3` vs `19.3.0`)**:
-   - **Causa**: Resolução cruzada de dependências por ferramenta de pacote externa que introduziu versões divergentes de `react-dom`.
-   - **Solução**: Limpeza de links simbólicos e revalidação via `npm install`, alinhando estritamente `react` e `react-dom` na versão `19.2.3` em todos os pacotes.
-
----
-
-### 1.3 Interface Mobile e Web (Cadastros e Estilos)
-
-- As telas de cadastro de animal e usuário utilizam NativeWind / Tailwind CSS.
-- Token `shadow-card` configurado para consistência visual dos cards.
-- Layouts e formulários seguem os padrões definidos no `DESIGN.md`.
-- `PrimaryInputText` com suporte a campos de senha (`isPassword`).
-- Rota administrativa `/cadastro-usuario` restrita a administradores autenticados.
-- Rota pública temporária `/cadastro-animal` com proteção no servidor mantida via JWT.
+* **Regras de Negócio e Segurança ([`UserController.ts`](apps/server/src/controllers/UserController.ts))**:
+  * **Anti-Enumeração de Usuários**: Respostas de erro padronizadas com status `401 Unauthorized` e mensagem genérica (*"E-mail ou senha incorretos"*) para usuários inexistentes ou senhas erradas.
+  * **Detecção de Contas Google**: Se uma conta foi criada via Google OAuth e não possui senha cadastrada, o login local instrui o usuário a autenticar via Google (`400 Bad Request`).
+  * **Cadastro Único**: Conflito de e-mail duplicado retorna `409 Conflict` imediatamente.
+  * **Segurança no Hash**: O controlador delega a senha pura ao `UserService.create`, que aplica o hash com salt (`Encrypt.saltHash`), prevenindo problemas de duplo hashing.
 
 ---
 
-### 1.4 Upload de Fotos e Storage S3 / MinIO
+### 1.3 Persistência de Sessão e Estado Global ([`authProvider.tsx`](apps/mobile-web/src/contexts/authProvider.tsx))
 
-- Upload de fotos de animais opcional via `multipart/form-data` em `POST /api/animals/:id/photos`.
-- Formatos aceitos: JPEG, PNG e WebP até 5 MB com validação de assinatura binária (magic numbers).
-- Armazenamento em serviço compatível com S3 (MinIO localmente através do bucket público `kapa-public`).
-- Registro do link na tabela `tb_animal_photos`.
+A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispositivo (`genericStorage` sobre `AsyncStorage`):
+
+* **Chaves de Armazenamento**:
+  * `@kapa:auth-token`: Token JWT da sessão.
+  * `@kapa:user-data`: Objeto DTO do usuário autenticado (`User`).
+
+* **Ciclo de Vida**:
+  1. **Inicialização (`loadStorageState`)**: Ao abrir ou recarregar a aplicação, recupera o token e o perfil do usuário. Se válidos, injeta automaticamente o cabeçalho padrão `Authorization: Bearer <token>` na instância do `kapaService` (Axios) e define `isLogged = true`.
+  2. **Login com Sucesso**: Tanto `signIn(email, password)` quanto `handleGoogleLogin(idToken)` salvam a sessão, atualizam o estado e redirecionam o usuário para a área protegida `/(protected)/(tabs)`.
+  3. **Logout (`signOut`)**: Limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
+  4. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
 
 ---
 
-## 2. Infraestrutura Docker Local
+## 2. Correções Críticas Realizadas no Projeto
 
-O arquivo `apps/server/docker-compose.yaml` gerencia os serviços de suporte:
+1. **Persistência de Sessão Multiplataforma**:
+   * **Causa**: Uso de mocks estáticos e ausência de métodos de remoção de chaves.
+   * **Solução**: Implementação do método `genericStorage.remove(key)` e estruturação de restauração de token e dados do usuário com sincronização de cabeçalhos no Axios.
+
+2. **Mapeamento de Coordenadas Nulas (`UserRepository.ts`)**:
+   * **Causa**: No método `mapToDomain`, os campos eram convertidos via `Number(record.latitude)`. Em JavaScript, `Number(null) === 0`, transformando coordenadas nulas de usuários recém-cadastrados em `0, 0` (Null Island no Oceano Atlântico).
+   * **Solução**: Ajustado para `record.latitude != null ? Number(record.latitude) : null`, preservando o valor nulo original no banco e no DTO da API.
+
+3. **Casing Case-Sensitive em URLs de Avatar (`Url.ts`)**:
+   * **Causa**: `Url.create` executava `.toLowerCase()` em toda a URL, quebrando os tokens e hashes Base64 das fotos de perfil do Google e gerando erro 404.
+   * **Solução**: Removido o `.toLowerCase()`. O construtor `new URL(trimmed)` cuida de normalizar apenas o protocolo e host, mantendo os parâmetros e caminhos intactos.
+
+4. **Hoisting de Módulos ES e Erro SCRAM do PostgreSQL**:
+   * **Causa**: Importações estáticas de rotas instanciavam `PrismaService` antes da execução de `dotenv.config()`, fazendo com que o pool do `pg` tentasse autenticar sem senha.
+   * **Solução**: Criação de `apps/server/src/config/env.ts` e exportação do Prisma via `Proxy` preguiçoso (*lazy initialization*).
+
+5. **Proteção de Salt e Execução Autônoma de Testes (`Encypt.ts`)**:
+   * **Causa**: `SALT_SECRET` dependia de execução atrelada ao servidor Express e quebrava ao rodar testes isolados via `tsx --test`.
+   * **Solução**: Importação do módulo de ambiente e função dinâmica `getSaltSecret()` com fallback seguro em desenvolvimento e obrigatoriedade em produção.
+
+6. **Limpeza de Permissões Desnecessárias no Android (`app.json`)**:
+   * **Causa**: A permissão `android.permission.RECORD_AUDIO` foi incluída indevidamente na configuração do Expo.
+   * **Solução**: Removida do manifesto Android para evitar alertas invasivos ao usuário e rejeição na Google Play Store.
+
+---
+
+## 3. Infraestrutura Docker Local
+
+Os serviços de banco, cache e armazenamento de arquivos são executados via Docker Compose:
 
 | Serviço | Container | Porta | Função |
 | --- | --- | --- | --- |
 | PostgreSQL | `kapa-database` | `5432` | Banco de dados relacional principal |
-| Redis | `kapa-redis` | `6379` | Cache e sessões |
+| Redis | `kapa-redis` | `6379` | Cache e gerenciamento de sessões |
 | MinIO API | `kapa-storage` | `9000` | API compatível com S3 para upload de arquivos |
 | MinIO Console | `kapa-storage` | `9001` | Painel web administrativo do MinIO |
-| Inicializador | `storage-init` | — | Cria e configura as permissões do bucket local |
-
-> **Nota:** O container `storage-init` finalizar com status `Exited (0)` é o comportamento esperado, pois executa um script de provisionamento inicial.
+| Inicializador | `storage-init` | — | Provisiona o bucket local `kapa-public` e finaliza com status `0` |
 
 ### Credenciais Locais de Desenvolvimento
 
-- **PostgreSQL**: Usuário `docker`, Senha `docker`, Banco `kapa`
-- **Redis**: Senha `kapa`
-- **MinIO**: Usuário `kapa`, Senha `kapa-local-storage-secret`
+* **PostgreSQL**: Usuário `docker`, Senha `docker`, Banco `kapa`
+* **Redis**: Senha `kapa`
+* **MinIO**: Usuário `kapa`, Senha `kapa-local-storage-secret`
 
 ---
 
-## 3. Guia de Configuração e Execução
+## 4. Guia de Configuração e Execução
 
-### 3.1 Pré-requisitos
-- Node.js 20+ (recomendado Node 22+)
-- npm 10+
-- Docker e Docker Compose
+### 4.1 Pré-requisitos
+* Node.js 20+ (recomendado Node 22+)
+* npm 10+ *(evitar pnpm no monorepo para prevenir conflitos de versões do React)*
+* Docker e Docker Compose
 
-### 3.2 Passo a Passo de Inicialização
+### 4.2 Passo a Passo de Inicialização
 
-1. **Instalar dependências na raiz do monorepo**:
+1. **Instalar dependências**:
    ```bash
    npm install
    ```
 
 2. **Configurar variáveis de ambiente**:
-   - Servidor:
+   * Servidor:
      ```bash
      cp apps/server/.env.example apps/server/.env
      ```
-   - Mobile/Web:
+   * Mobile/Web:
      ```bash
      cp apps/mobile-web/.env.example apps/mobile-web/.env
      ```
-   *(Preencha os Client IDs do Google OAuth em ambos os arquivos).*
 
-3. **Subir a infraestrutura Docker**:
+3. **Subir os containers de banco e storage**:
    ```bash
    docker compose -f apps/server/docker-compose.yaml up -d
    ```
 
-4. **Aplicar as migrations existentes do PostgreSQL**:
+4. **Aplicar migrações do PostgreSQL**:
    ```bash
-   npm run prisma:migrate --workspace=@kapa/server # ou npx prisma migrate deploy dentro de apps/server
+   npx prisma migrate deploy --schema=apps/server/prisma/schema.prisma
    ```
 
-5. **Iniciar API e Expo juntos**:
+5. **Iniciar a aplicação completa (Web + Servidor)**:
    ```bash
    npm run dev
    ```
-   Ou em terminais separados:
-   - Backend: `npm run dev:server` (ou `cd apps/server && npm run dev`)
-   - Frontend: `npm run web` (ou `npm run start:mobile`)
-
-### 3.3 Endereços dos Serviços Locais
-- **API Express**: `http://localhost:4000`
-- **Health Check da API**: `http://localhost:4000/api/health`
-- **Aplicação Web (Expo)**: `http://localhost:8081`
-- **Console do MinIO**: `http://localhost:9001`
+   *O comando raiz executa o Expo Web e o servidor Express simultaneamente com hot-reloading.*
 
 ---
 
-## 4. Variáveis de Ambiente Relevantes
+## 5. Variáveis de Ambiente
 
 | Variável | Escopo | Descrição |
 | --- | --- | --- |
-| `PORT` | Backend | Porta HTTP do servidor Express (padrão `4000`) |
+| `PORT` | Backend | Porta HTTP do servidor Express (padrão: `4000`) |
 | `DATABASE_URL` | Backend | String de conexão com o PostgreSQL |
-| `JWT_SECRET` | Backend | Segredo para assinatura de tokens JWT da aplicação |
-| `CLIENT_URL` | Backend | URL do cliente para validação de CORS (padrão `http://localhost:8081`) |
-| `GOOGLE_CLIENT_ID` | Backend | Client ID principal para validação de tokens Google |
-| `GOOGLE_WEB_CLIENT_ID` | Backend | Client ID da aplicação Web para checagem de audiência |
-| `GOOGLE_IOS_CLIENT_ID` | Backend | Client ID da aplicação iOS |
-| `GOOGLE_ANDROID_CLIENT_ID` | Backend | Client ID da aplicação Android |
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Mobile/Web | Client ID Google usado no navegador pelo Expo |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Mobile/Web | Client ID Google nativo para iOS |
-| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Mobile/Web | Client ID Google nativo para Android |
-| `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base da API Kapa (padrão `http://localhost:4000/api`) |
+| `JWT_SECRET` | Backend | Chave secreta para assinatura dos tokens JWT |
+| `SALT_SECRET` | Backend | Segredo utilizado na derivação PBKDF2 de senhas |
+| `CLIENT_URL` | Backend | URL do cliente autorizada no CORS (padrão: `http://localhost:8081`) |
+| `GOOGLE_CLIENT_ID` | Backend | Client ID principal da aplicação Google |
+| `GOOGLE_WEB_CLIENT_ID` | Backend | Client ID web para verificação de audiência |
+| `GOOGLE_IOS_CLIENT_ID` | Backend | Client ID iOS para verificação de audiência |
+| `GOOGLE_ANDROID_CLIENT_ID` | Backend | Client ID Android para verificação de audiência |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Mobile/Web | Client ID Google injetado no navegador pelo Expo |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos iOS |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos Android |
+| `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base da API (padrão: `http://localhost:4000/api`) |
 
 ---
 
-## 5. Validação de Qualidade e Testes
+## 6. Validação de Qualidade e Bateria de Testes
 
-Antes de submeter novos commits ou abrir Pull Requests, execute as seguintes verificações:
+O projeto conta com verificações estritas de tipagem, linting e testes automatizados:
 
 ```bash
-# 1. Executar bateria de testes automatizados do backend (14 testes)
+# 1. Bateria completa de testes unitários do backend (20 testes em 9 suítes)
 npm run test --workspace=@kapa/server
 
-# 2. Verificação de tipos TypeScript no backend
-npx tsc --noEmit -p apps/server/tsconfig.json
+# 2. Verificação de tipos TypeScript no Backend
+npx tsc --noEmit --project apps/server/tsconfig.json
 
-# 3. Verificação de tipos TypeScript no frontend
-npx tsc --noEmit -p apps/mobile-web/tsconfig.json
+# 3. Verificação de tipos TypeScript no Mobile/Web
+npx tsc --noEmit --project apps/mobile-web/tsconfig.json
 
-# 4. Verificação de linting
+# 4. Verificação de Linting em todos os pacotes
 npm run lint
+
+# 5. Build de produção do servidor
+npm run build:server
+
+# 6. Build de exportação web do Expo
+npm run build:web
 ```
 
-> **Lembrete de Segurança:** Nunca faça commit de arquivos `.env` e nunca modifique esquemas do banco ou crie migrations sem alinhamento e aprovação prévia com a equipe.
+> **Aviso de Governança (`AGENTS.md`):** Nunca execute alterações diretas no esquema do banco de dados (`schema.prisma`) ou crie migrações sem alinhamento e autorização prévia da equipe.
