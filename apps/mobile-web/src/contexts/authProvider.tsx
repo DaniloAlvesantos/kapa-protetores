@@ -1,17 +1,26 @@
 import { kapaService } from '@/services/kapaService';
 import { genericStorage } from '@/storage/genericStorage';
+import { User } from '@kapa/shared';
 import { router } from 'expo-router';
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 
 interface AuthContextProps {
   isLogged: boolean;
   isReady: boolean;
-  signIn: () => void;
+  user: User | null;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
-  handleGoogleLogin: (idToken: string) => void;
+  handleGoogleLogin: (idToken: string) => Promise<void>;
 }
 
-const AUTH_STORAGE_KEY = '@kapa:auth-state';
+const AUTH_STORAGE_TOKEN_KEY = '@kapa:auth-token';
+const AUTH_STORAGE_DATA_KEY = '@kapa:user-data';
 
 export const AuthContext = createContext<AuthContextProps>(
   {} as AuthContextProps,
@@ -22,57 +31,99 @@ interface AuthProviderProp {
 }
 
 export function AuthProvider({ children }: AuthProviderProp) {
-  const [isLogged, setIsLogged] = useState<boolean>(true);
+  const [isLogged, setIsLogged] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
 
-  const storageState = async (newState: boolean) => {
+  const storageState = async (token: string, data: User) => {
     try {
-      await genericStorage.set<boolean>(AUTH_STORAGE_KEY, newState);
+      await genericStorage.set<string>(AUTH_STORAGE_TOKEN_KEY, token);
+      await genericStorage.set<User>(AUTH_STORAGE_DATA_KEY, data);
+      kapaService.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } catch (err) {
-      console.error(err);
+      console.error('Error on saving auth storage state:', err);
     }
   };
 
-  const signIn = () => {
-    setIsLogged(true);
-    storageState(true);
-    router.replace('/');
-  };
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const response = await kapaService.post('/api/users/signin', {
+        email,
+        password,
+      });
 
-  const signOut = () => {
+      if (!response.data || !response.data.data) {
+        throw new Error('Falha na resposta de autenticação.');
+      }
+
+      const { token, user: userData } = response.data.data;
+
+      await storageState(token, userData);
+
+      setUser(userData);
+      setIsLogged(true);
+      router.replace('/(protected)/(tabs)');
+    } catch (err) {
+      console.error('signIn error:', err);
+      throw err;
+    }
+  }, []);
+
+  const signOut = async () => {
     setIsLogged(false);
-    storageState(false);
+    setUser(null);
+    delete kapaService.defaults.headers.common['Authorization'];
+    await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
+    await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
     router.replace('/signIn');
   };
 
-  const handleGoogleLogin = async (idToken: string) => {
+  const handleGoogleLogin = useCallback(async (idToken: string) => {
     try {
-      const response = await kapaService.post('/auth/google', {
+      const response = await kapaService.post('/api/auth/google', {
         idToken,
       });
 
-      if (!response.data) {
+      if (!response.data || !response.data.data) {
         throw new Error('Error on authentication.');
       }
 
-      const data = response.data;
-      console.log('handleGoogleLogin', data);
+      const { token, user: userData } = response.data.data;
+
+      await storageState(token, userData);
+
+      setUser(userData);
+      setIsLogged(true);
       router.replace('/(protected)/(tabs)');
     } catch (err) {
-      console.error(err);
+      console.error('handleGoogleLogin error:', err);
+      throw err;
     }
-  };
+  }, []);
 
   useEffect(() => {
     async function loadStorageState() {
       try {
-        const storagedState =
-          await genericStorage.get<boolean>(AUTH_STORAGE_KEY);
+        const storedToken = await genericStorage.get<string>(
+          AUTH_STORAGE_TOKEN_KEY,
+        );
+        const storedUser = await genericStorage.get<User>(
+          AUTH_STORAGE_DATA_KEY,
+        );
 
-        setIsLogged(storagedState ?? false);
+        if (storedToken && storedUser) {
+          kapaService.defaults.headers.common['Authorization'] =
+            `Bearer ${storedToken}`;
+          setUser(storedUser);
+          setIsLogged(true);
+        } else {
+          setIsLogged(false);
+          setUser(null);
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Error loading auth storage state:', err);
         setIsLogged(false);
+        setUser(null);
       } finally {
         setIsReady(true);
       }
@@ -85,9 +136,10 @@ export function AuthProvider({ children }: AuthProviderProp) {
     <AuthContext.Provider
       value={{
         isLogged,
+        isReady,
+        user,
         signIn,
         signOut,
-        isReady,
         handleGoogleLogin,
       }}
     >

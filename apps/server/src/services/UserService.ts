@@ -22,24 +22,72 @@ export class UserService {
       process.env.GOOGLE_ANDROID_CLIENT_ID,
     ].filter((id): id is string => Boolean(id));
 
-    let ticket;
+    let email: string | undefined;
+    let name: string | undefined;
+    let picture: string | undefined;
 
-    try {
-      ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: audiences.length > 0 ? audiences : undefined,
-      });
-    } catch {
-      throw AppError.unauthorized('Token do Google inválido ou expirado');
+    const isJwt = idToken.split('.').length === 3;
+
+    if (isJwt) {
+      let ticket;
+
+      try {
+        ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: audiences.length > 0 ? audiences : undefined,
+        });
+      } catch {
+        throw AppError.unauthorized('Token do Google inválido ou expirado');
+      }
+
+      const payload = ticket.getPayload();
+
+      if (!payload || !payload.email || !payload.email_verified) {
+        throw AppError.unauthorized('Email do Google não verificado');
+      }
+
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    } else {
+      try {
+        const tokenInfo = await googleClient.getTokenInfo(idToken);
+        if (audiences.length > 0 && !audiences.includes(tokenInfo.aud)) {
+          throw AppError.unauthorized('Audience do token Google inválida');
+        }
+
+        const userInfoResponse = await fetch(
+          'https://www.googleapis.com/oauth2/v3/userinfo',
+          {
+            headers: { Authorization: `Bearer ${idToken}` },
+          },
+        );
+
+        if (!userInfoResponse.ok) {
+          throw AppError.unauthorized('Token do Google inválido ou expirado');
+        }
+
+        const userInfo = (await userInfoResponse.json()) as {
+          email?: string;
+          email_verified?: boolean;
+          name?: string;
+          picture?: string;
+        };
+
+        if (!userInfo.email || !userInfo.email_verified) {
+          throw AppError.unauthorized('Email do Google não verificado');
+        }
+
+        email = userInfo.email;
+        name = userInfo.name;
+        picture = userInfo.picture;
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw error;
+        }
+        throw AppError.unauthorized('Token do Google inválido ou expirado');
+      }
     }
-
-    const payload = ticket.getPayload();
-
-    if (!payload || !payload.email || !payload.email_verified) {
-      throw AppError.unauthorized('Email do Google não verificado');
-    }
-
-    const { name, email, picture } = payload;
 
     if (!email) {
       throw new ServiceError('Email não encontrado no payload do Google.');
@@ -49,6 +97,9 @@ export class UserService {
     let user = await this.repository.findByEmail(safeEmail);
 
     if (user) {
+      if (picture && user.getAvatar()?.toString() !== picture) {
+        user = await this.updateAvatar(user.getId().toString(), picture);
+      }
       return user;
     }
 

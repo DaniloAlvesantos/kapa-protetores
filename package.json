@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n \"EXPO,SERVER\" -c \"cyan,green\" \"npm run dev:mobile\" \"npm run dev:server\"",
+    "dev": "concurrently -n \"EXPO,SERVER\" -c \"cyan,green\" \"npm run web\" \"npm run dev:server\"",
     "dev:mobile": "npm run start --workspace=apps/mobile-web",
     "dev:server": "npm run dev --workspace=apps/server",
     "start:mobile": "npm run start --workspace=apps/mobile-web",

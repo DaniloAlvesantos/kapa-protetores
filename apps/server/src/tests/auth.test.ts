@@ -200,3 +200,308 @@ describe('AuthController', () => {
   });
 });
 
+describe('UserService Google Authentication', () => {
+  it('should reject invalid or malformed token with AppError.unauthorized', async () => {
+    const { UserService } = await import('../services/UserService');
+    const mockRepo = {} as unknown as import('../repositories/UserRepository').UserRepository;
+    const service = new UserService(mockRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.authenticateWithGoogle('malformed.jwt.token');
+      },
+      (err: unknown) => {
+        const appErr = err as { statusCode?: number; message?: string };
+        return appErr.statusCode === 401;
+      }
+    );
+  });
+
+  it('should reject invalid non-jwt token with AppError.unauthorized', async () => {
+    const { UserService } = await import('../services/UserService');
+    const mockRepo = {} as unknown as import('../repositories/UserRepository').UserRepository;
+    const service = new UserService(mockRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.authenticateWithGoogle('invalid_opaque_token');
+      },
+      (err: unknown) => {
+        const appErr = err as { statusCode?: number; message?: string };
+        return appErr.statusCode === 401;
+      }
+    );
+  });
+});
+
+describe('Url Value Object', () => {
+  it('should preserve casing in URL paths, tokens, and query parameters', async () => {
+    const { Url } = await import('../domains/Url');
+    const googleAvatarUrl =
+      'https://lh3.googleusercontent.com/a/ACg8ocKj5bUBjtQMPWLDqq3cbn6OOwbxsQODpm_8JArvUfunrRd5xf492Q=s96-c';
+    const parsed = Url.create(googleAvatarUrl);
+
+    assert.strictEqual(parsed.toString(), googleAvatarUrl);
+    assert.strictEqual(parsed.getValue(), googleAvatarUrl);
+  });
+});
+
+describe('User Schema Validation', () => {
+  it('should validate signInSchema correctly', async () => {
+    const { signInSchema } = await import('../schemas/user.schema');
+
+    // Missing fields
+    assert.strictEqual(signInSchema.safeParse({}).success, false);
+
+    // Invalid email
+    assert.strictEqual(
+      signInSchema.safeParse({ email: 'not-an-email', password: '123' }).success,
+      false,
+    );
+
+    // Empty password
+    assert.strictEqual(
+      signInSchema.safeParse({ email: 'test@example.com', password: '' }).success,
+      false,
+    );
+
+    // Valid with lowercased email
+    const valid = signInSchema.safeParse({
+      email: '  User@Example.COM  ',
+      password: 'mypassword',
+    });
+    assert.strictEqual(valid.success, true);
+    if (valid.success) {
+      assert.strictEqual(valid.data.email, 'user@example.com');
+      assert.strictEqual(valid.data.password, 'mypassword');
+    }
+  });
+
+  it('should validate registerSchema correctly', async () => {
+    const { registerSchema } = await import('../schemas/user.schema');
+
+    // Too short username
+    assert.strictEqual(
+      registerSchema.safeParse({
+        username: 'ab',
+        email: 'test@example.com',
+        password: 'password123',
+      }).success,
+      false,
+    );
+
+    // Too short password
+    assert.strictEqual(
+      registerSchema.safeParse({
+        username: 'validuser',
+        email: 'test@example.com',
+        password: '123',
+      }).success,
+      false,
+    );
+
+    // Invalid avatar URL
+    assert.strictEqual(
+      registerSchema.safeParse({
+        username: 'validuser',
+        email: 'test@example.com',
+        password: 'password123',
+        avatar: 'not-a-valid-url',
+      }).success,
+      false,
+    );
+
+    // Empty string avatar should transform to null
+    const emptyAvatar = registerSchema.safeParse({
+      username: 'validuser',
+      email: 'test@example.com',
+      password: 'password123',
+      avatar: '',
+    });
+    assert.strictEqual(emptyAvatar.success, true);
+    if (emptyAvatar.success) {
+      assert.strictEqual(emptyAvatar.data.avatar, null);
+    }
+
+    // Invalid latitude range
+    assert.strictEqual(
+      registerSchema.safeParse({
+        username: 'validuser',
+        email: 'test@example.com',
+        password: 'password123',
+        latitude: 95,
+      }).success,
+      false,
+    );
+
+    // Valid complete registration
+    const valid = registerSchema.safeParse({
+      username: '  validuser  ',
+      email: '  USER@example.com  ',
+      password: 'securepassword123',
+      avatar: 'https://example.com/avatar.jpg',
+      latitude: -23.55052,
+      longitude: -46.633308,
+    });
+    assert.strictEqual(valid.success, true);
+    if (valid.success) {
+      assert.strictEqual(valid.data.username, 'validuser');
+      assert.strictEqual(valid.data.email, 'user@example.com');
+      assert.strictEqual(valid.data.avatar, 'https://example.com/avatar.jpg');
+      assert.strictEqual(valid.data.latitude, -23.55052);
+      assert.strictEqual(valid.data.longitude, -46.633308);
+    }
+  });
+});
+
+describe('UserRepository Mapping', () => {
+  it('should map null latitude and longitude to null instead of 0', async () => {
+    const { UserRepository } = await import('../repositories/UserRepository');
+    const mockPrisma = {} as unknown as import('@prisma/client').PrismaClient;
+    const repo = new UserRepository(mockPrisma);
+
+    // Access mapToDomain via mock record
+    const record = {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'hash',
+      avatar: null,
+      role: 'adopter' as const,
+      rules: ['adopter:read'],
+      latitude: null,
+      longitude: null,
+      created_at: new Date('2026-01-01T00:00:00Z'),
+    };
+
+    // @ts-expect-error accessing private method for unit verification
+    const user = repo.mapToDomain(record);
+    assert.strictEqual(user.getLatitude(), null);
+    assert.strictEqual(user.getLongitude(), null);
+
+    const dto = user.toDTO();
+    assert.strictEqual(dto.latitude, null);
+    assert.strictEqual(dto.longitude, null);
+  });
+});
+
+describe('UserController', () => {
+  it('should reject signin with incorrect password', async () => {
+    const { Encrypt } = await import('../utils/Encypt');
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Test User');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('correct-password').toString('hex'));
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      getByEmail: async () => user,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      body: { email: 'user@example.com', password: 'wrong-password' },
+    } as unknown as Request;
+    const res = {} as unknown as Response;
+
+    let forwardedError: unknown;
+    const next = (err?: unknown) => {
+      forwardedError = err;
+    };
+
+    await controller.signIn(req, res, next);
+    assert.ok(forwardedError);
+    const appErr = forwardedError as { statusCode?: number; message?: string };
+    assert.strictEqual(appErr.statusCode, 401);
+  });
+
+  it('should sign in successfully with correct credentials', async () => {
+    const { Encrypt } = await import('../utils/Encypt');
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Test User');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('correct-password').toString('hex'));
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      getByEmail: async () => user,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      body: { email: 'user@example.com', password: 'correct-password' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.signIn(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as { success: boolean; data: { token: string; user: { email: string } } };
+    assert.strictEqual(typedBody.success, true);
+    assert.ok(typedBody.data.token);
+    assert.strictEqual(typedBody.data.user.email, 'user@example.com');
+  });
+
+  it('should reject registration if email already exists', async () => {
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const existingUser = new User();
+    existingUser.setId('123e4567-e89b-12d3-a456-426614174000');
+    existingUser.setUsername('Existing User');
+    existingUser.setEmail('exists@example.com');
+    existingUser.setRole('adopter');
+    existingUser.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      getByEmail: async () => existingUser,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      body: {
+        username: 'newuser',
+        email: 'exists@example.com',
+        password: 'password123',
+      },
+    } as unknown as Request;
+    const res = {} as unknown as Response;
+
+    let forwardedError: unknown;
+    const next = (err?: unknown) => {
+      forwardedError = err;
+    };
+
+    await controller.register(req, res, next);
+    assert.ok(forwardedError);
+    const appErr = forwardedError as { statusCode?: number };
+    assert.strictEqual(appErr.statusCode, 409);
+  });
+});
+

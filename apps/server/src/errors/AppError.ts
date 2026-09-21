@@ -29,4 +29,8 @@ export class AppError extends BaseError {
   public static unauthorized(message: string = 'Não autorizado') {
     return new AppError(message, 401);
   }
+
+  public static conflict(message: string = 'Conflito de recursos'): AppError {
+    return new AppError(message, 409);
+  }
 }

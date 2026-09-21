@@ -19,8 +19,12 @@ export class UserRepository implements IUserRepository {
     user.setAvatar(record.avatar);
     user.setRole(record.role);
     user.setRules(record.rules);
-    user.setLatitude(Number(record.latitude));
-    user.setLongitude(Number(record.longitude));
+    user.setLatitude(
+      record.latitude != null ? Number(record.latitude) : null,
+    );
+    user.setLongitude(
+      record.longitude != null ? Number(record.longitude) : null,
+    );
     user.setCreatedAt(record.created_at.toISOString());
 
     return user;
