@@ -10,11 +10,21 @@ import {
   useState,
 } from 'react';
 
+export interface SignUpData {
+  username: string;
+  email: string;
+  password: string;
+  avatar?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 interface AuthContextProps {
   isLogged: boolean;
   isReady: boolean;
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   signOut: () => void;
   handleGoogleLogin: (idToken: string) => Promise<void>;
 }
@@ -65,6 +75,27 @@ export function AuthProvider({ children }: AuthProviderProp) {
       router.replace('/(protected)/(tabs)');
     } catch (err) {
       console.error('signIn error:', err);
+      throw err;
+    }
+  }, []);
+
+  const signUp = useCallback(async (data: SignUpData) => {
+    try {
+      const response = await kapaService.post('/api/users/register', data);
+
+      if (!response.data || !response.data.data) {
+        throw new Error('Falha no cadastro.');
+      }
+
+      const { token, user: userData } = response.data.data;
+
+      await storageState(token, userData);
+
+      setUser(userData);
+      setIsLogged(true);
+      router.replace('/(protected)/(tabs)');
+    } catch (err) {
+      console.error('signUp error:', err);
       throw err;
     }
   }, []);
@@ -139,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
         isReady,
         user,
         signIn,
+        signUp,
         signOut,
         handleGoogleLogin,
       }}
