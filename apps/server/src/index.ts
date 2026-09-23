@@ -1,54 +1,23 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import './config/env';
+import { App } from './App';
 import { apiRouter } from './routes';
 
-dotenv.config();
+const port = Number(process.env.PORT) || 4000;
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:8081';
 
-const app = express();
-const PORT = process.env.PORT || 4000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:8081';
+const application = new App(apiRouter, { port, clientUrl });
 
-const allowedOrigins = [
-  CLIENT_URL,
-  'http://localhost:19006', // Legacy Expo web
-  'http://localhost:8081',  // Metro bundler web
-];
+application.listen();
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
-    credentials: true,
-  })
-);
+const handleShutdown = async (signal: string): Promise<void> => {
+  console.log(
+    `\n[Server]: ${signal} received, closing HTTP server gracefully...`,
+  );
+  await application.close();
+  process.exit(0);
+};
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+process.on('SIGINT', () => void handleShutdown('SIGINT'));
+process.on('SIGTERM', () => void handleShutdown('SIGTERM'));
 
-// Mount API routes
-app.use('/api', apiRouter);
-
-// Root fallback route
-app.get('/', (_req: Request, res: Response) => {
-  res.json({ message: 'Kapa Protetores API is running' });
-});
-
-// Centralized error handling
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('[ServerError]:', err.message);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🏥 Health check at http://localhost:${PORT}/api/health`);
-});
+export { application };

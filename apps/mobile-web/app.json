@@ -7,22 +7,19 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F39200"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "edu.fatec.kapaprotetores"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F39200",
+        "backgroundColor": "#F18322",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "edu.fatec.kapaprotetores"
     },
     "web": {
       "bundler": "metro",
@@ -31,7 +28,7 @@
       "name": "Kapa Protetores",
       "shortName": "Kapa",
       "description": "Plataforma Kapa para protetores de animais",
-      "themeColor": "#F39200",
+      "themeColor": "#F18322",
       "backgroundColor": "#FFFFFF",
       "display": "standalone",
       "startUrl": "/"
@@ -46,7 +43,23 @@
         }
       ],
       "expo-font",
-      "expo-splash-screen"
-    ]
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F18322",
+          "image": "./assets/SplashScreen.png",
+          "imageWidth": 300,
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2fe7d1ce-3a78-44ce-ac8d-5e6cf15f8fd3"
+      }
+    }
   }
 }
