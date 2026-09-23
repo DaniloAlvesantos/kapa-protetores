@@ -5,15 +5,12 @@ import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { EnvelopeSimpleIcon, LockIcon, UserIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
-import GoogleSvg from '@/../assets/google.svg';
+import { GoogleAuthButton } from '@/components/buttons/google';
+import { ErrorBanner } from '@/components/feedback/ErrorBanner';
 import { useAuth } from '@/hooks/useAuth';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { router } from 'expo-router';
-
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { useEffect, useState } from 'react';
-
-WebBrowser.maybeCompleteAuthSession();
+import { useState } from 'react';
 
 const registerFormSchema = z
   .object({
@@ -43,14 +40,14 @@ const registerFormSchema = z
 type RegisterFormData = z.infer<typeof registerFormSchema>;
 
 export function RegisterForm() {
-  const { signUp, handleGoogleLogin } = useAuth();
+  const { signUp } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  });
+  const {
+    isGoogleReady,
+    signInWithGoogle,
+    googleErrorMessage,
+    clearGoogleError,
+  } = useGoogleAuth();
 
   const { control, handleSubmit, formState } = useForm<RegisterFormData>({
     resolver: zodResolver(registerFormSchema),
@@ -65,6 +62,7 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setErrorMessage(null);
+      clearGoogleError();
       await signUp({
         username: data.username,
         email: data.email,
@@ -79,81 +77,39 @@ export function RegisterForm() {
           };
         };
       };
-      const message =
+      setErrorMessage(
         axiosError?.response?.data?.message ||
-        axiosError?.response?.data?.error ||
-        'Não foi possível realizar o cadastro. Tente novamente.';
-      setErrorMessage(message);
+          axiosError?.response?.data?.error ||
+          'Não foi possível realizar o cadastro. Tente novamente.',
+      );
     }
   };
 
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken =
-        response.params?.id_token ??
-        response.authentication?.idToken ??
-        response.params?.access_token;
-
-      if (idToken) {
-        handleGoogleLogin(idToken).catch((err: unknown) => {
-          const axiosError = err as {
-            response?: {
-              data?: {
-                message?: string;
-                error?: string;
-              };
-            };
-          };
-          const message =
-            axiosError?.response?.data?.message ||
-            axiosError?.response?.data?.error ||
-            'Falha na autenticação com o Google.';
-          setErrorMessage(message);
-        });
-      }
-    }
-  }, [response, handleGoogleLogin]);
-
-  const googleAuthError =
-    response?.type === 'error' ? 'Falha ao autenticar com o Google.' : null;
-  const activeErrorMessage = errorMessage || googleAuthError;
-
-  const googleSignIn = async () => {
+  const handleGooglePress = async () => {
     setErrorMessage(null);
-    await promptAsync();
+    await signInWithGoogle();
   };
+
+  const activeError = errorMessage || googleErrorMessage;
 
   return (
     <View className="px-4">
       <View className="flex flex-col items-center gap-5 w-full">
-        {activeErrorMessage && (
-          <View className="w-full p-3 rounded-lg bg-[#FFDAD6] border border-[#BA1A1A]/30">
-            <Text className="text-xs font-semibold text-[#93000A] text-center">
-              {activeErrorMessage}
-            </Text>
-          </View>
-        )}
+        <ErrorBanner message={activeError} />
 
         <Controller
           control={control}
           name="username"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <SecondaryInputText
-                label="Nome de usuário"
-                icon={<UserIcon size={28} color="#57423B50" />}
-                value={value}
-                onChangeText={onChange}
-                placeholder="Ex: Fulano da Silva"
-                autoCapitalize="words"
-              />
-
-              {error && (
-                <Text className="w-full mt-[-12px] text-xs font-medium text-red-500">
-                  {error.message}
-                </Text>
-              )}
-            </>
+            <SecondaryInputText
+              label="Nome de usuário"
+              icon={<UserIcon size={28} color="#57423B50" />}
+              value={value}
+              onChangeText={onChange}
+              placeholder="Ex: Danilo Alves"
+              autoCapitalize="words"
+              error={error?.message}
+            />
           )}
         />
 
@@ -161,23 +117,16 @@ export function RegisterForm() {
           control={control}
           name="email"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <SecondaryInputText
-                label="E-mail"
-                icon={<EnvelopeSimpleIcon size={28} color="#57423B50" />}
-                value={value}
-                onChangeText={onChange}
-                placeholder="fulano.silva@kapa.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-
-              {error && (
-                <Text className="w-full mt-[-12px] text-xs font-medium text-red-500">
-                  {error.message}
-                </Text>
-              )}
-            </>
+            <SecondaryInputText
+              label="E-mail"
+              icon={<EnvelopeSimpleIcon size={28} color="#57423B50" />}
+              value={value}
+              onChangeText={onChange}
+              placeholder="seu.email@kapa.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={error?.message}
+            />
           )}
         />
 
@@ -185,22 +134,15 @@ export function RegisterForm() {
           control={control}
           name="password"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <SecondaryInputText
-                label="Senha"
-                icon={<LockIcon size={28} color="#57423B50" />}
-                value={value}
-                onChangeText={onChange}
-                placeholder="Mínimo 6 caracteres"
-                isPassword
-              />
-
-              {error && (
-                <Text className="w-full mt-[-12px] text-xs font-medium text-red-500">
-                  {error.message}
-                </Text>
-              )}
-            </>
+            <SecondaryInputText
+              label="Senha"
+              icon={<LockIcon size={28} color="#57423B50" />}
+              value={value}
+              onChangeText={onChange}
+              placeholder="Mínimo 6 caracteres"
+              isPassword
+              error={error?.message}
+            />
           )}
         />
 
@@ -208,22 +150,15 @@ export function RegisterForm() {
           control={control}
           name="confirmPassword"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
-            <>
-              <SecondaryInputText
-                label="Confirmar senha"
-                icon={<LockIcon size={28} color="#57423B50" />}
-                value={value}
-                onChangeText={onChange}
-                placeholder="Repita sua senha"
-                isPassword
-              />
-
-              {error && (
-                <Text className="w-full mt-[-12px] text-xs font-medium text-red-500">
-                  {error.message}
-                </Text>
-              )}
-            </>
+            <SecondaryInputText
+              label="Confirmar senha"
+              icon={<LockIcon size={28} color="#57423B50" />}
+              value={value}
+              onChangeText={onChange}
+              placeholder="Repita sua senha"
+              isPassword
+              error={error?.message}
+            />
           )}
         />
 
@@ -235,23 +170,10 @@ export function RegisterForm() {
         />
       </View>
 
-      <View className="flex-row items-center w-full px-5 my-5">
-        <View className="flex-1 h-[1px] bg-border my-3" />
-        <Text className="text-sm font-semibold text-ink-muted mx-4">
-          ou cadastre-se com
-        </Text>
-        <View className="flex-1 h-[1px] bg-border my-3" />
-      </View>
-
-      <PrimaryButton
-        title="Google"
-        color="#ffffff"
-        pressedColor="#f7f7f7"
-        textColor="#1C1C19"
-        className="border-2 border-border"
-        icon={<GoogleSvg width={24} height={24} />}
-        onPress={googleSignIn}
-        disabled={!request}
+      <GoogleAuthButton
+        dividerText="ou cadastre-se com"
+        onPress={handleGooglePress}
+        disabled={!isGoogleReady}
       />
 
       <Text className="text-center my-6 text-sm text-ink-muted">

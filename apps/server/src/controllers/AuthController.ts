@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { googleAuthSchema } from '../schemas/auth.schema';
 import { UserService } from '../services/UserService';
 import { Jwt } from '../utils/Jwt';
-import { UserJwt } from '@kapa/shared';
 import { AppError } from '../errors/AppError';
 
 export class AuthController {
@@ -25,16 +24,7 @@ export class AuthController {
 
       const { idToken } = parseResult.data;
       const user = await this.userService.authenticateWithGoogle(idToken);
-
-      const jwtData: UserJwt = {
-        sub: user.getId().toString(),
-        email: user.getEmail().toString(),
-        role: user.getRole(),
-        rules: Array.from(user.getRules()),
-        username: user.getUsername(),
-      };
-
-      const token = Jwt.generateToken(jwtData);
+      const token = Jwt.generateUserToken(user);
 
       res.status(200).json({
         success: true,

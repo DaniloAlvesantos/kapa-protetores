@@ -55,50 +55,56 @@ export function AuthProvider({ children }: AuthProviderProp) {
     }
   };
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await kapaService.post('/api/users/signin', {
-        email,
-        password,
-      });
-
-      if (!response.data || !response.data.data) {
-        throw new Error('Falha na resposta de autenticação.');
-      }
-
-      const { token, user: userData } = response.data.data;
-
+  const establishSession = useCallback(
+    async (token: string, userData: User) => {
       await storageState(token, userData);
-
       setUser(userData);
       setIsLogged(true);
       router.replace('/(protected)/(tabs)');
-    } catch (err) {
-      console.error('signIn error:', err);
-      throw err;
-    }
-  }, []);
+    },
+    [],
+  );
 
-  const signUp = useCallback(async (data: SignUpData) => {
-    try {
-      const response = await kapaService.post('/api/users/register', data);
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const response = await kapaService.post('/api/users/signin', {
+          email,
+          password,
+        });
 
-      if (!response.data || !response.data.data) {
-        throw new Error('Falha no cadastro.');
+        if (!response.data?.data) {
+          throw new Error('Falha na resposta de autenticação.');
+        }
+
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        console.error('signIn error:', err);
+        throw err;
       }
+    },
+    [establishSession],
+  );
 
-      const { token, user: userData } = response.data.data;
+  const signUp = useCallback(
+    async (data: SignUpData) => {
+      try {
+        const response = await kapaService.post('/api/users/register', data);
 
-      await storageState(token, userData);
+        if (!response.data?.data) {
+          throw new Error('Falha no cadastro.');
+        }
 
-      setUser(userData);
-      setIsLogged(true);
-      router.replace('/(protected)/(tabs)');
-    } catch (err) {
-      console.error('signUp error:', err);
-      throw err;
-    }
-  }, []);
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        console.error('signUp error:', err);
+        throw err;
+      }
+    },
+    [establishSession],
+  );
 
   const signOut = async () => {
     setIsLogged(false);
@@ -109,28 +115,26 @@ export function AuthProvider({ children }: AuthProviderProp) {
     router.replace('/signIn');
   };
 
-  const handleGoogleLogin = useCallback(async (idToken: string) => {
-    try {
-      const response = await kapaService.post('/api/auth/google', {
-        idToken,
-      });
+  const handleGoogleLogin = useCallback(
+    async (idToken: string) => {
+      try {
+        const response = await kapaService.post('/api/auth/google', {
+          idToken,
+        });
 
-      if (!response.data || !response.data.data) {
-        throw new Error('Error on authentication.');
+        if (!response.data?.data) {
+          throw new Error('Error on authentication.');
+        }
+
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        console.error('handleGoogleLogin error:', err);
+        throw err;
       }
-
-      const { token, user: userData } = response.data.data;
-
-      await storageState(token, userData);
-
-      setUser(userData);
-      setIsLogged(true);
-      router.replace('/(protected)/(tabs)');
-    } catch (err) {
-      console.error('handleGoogleLogin error:', err);
-      throw err;
-    }
-  }, []);
+    },
+    [establishSession],
+  );
 
   useEffect(() => {
     async function loadStorageState() {

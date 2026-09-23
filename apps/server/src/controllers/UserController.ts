@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { UserService } from '../services/UserService';
 import { registerSchema, signInSchema } from '../schemas/user.schema';
-import { DEFAULT_USER_ADOPTER_RULES, UserJwt } from '@kapa/shared';
+import { DEFAULT_USER_ADOPTER_RULES } from '@kapa/shared';
 import { Jwt } from '../utils/Jwt';
 import { Encrypt } from '../utils/Encypt';
 import { AppError } from '../errors/AppError';
@@ -45,15 +45,7 @@ export class UserController {
         throw AppError.unauthorized('E-mail ou senha incorretos');
       }
 
-      const jwtData: UserJwt = {
-        sub: user.getId().toString(),
-        email: user.getEmail().toString(),
-        role: user.getRole(),
-        rules: Array.from(user.getRules()),
-        username: user.getUsername(),
-      };
-
-      const token = Jwt.generateToken(jwtData);
+      const token = Jwt.generateUserToken(user);
 
       res.status(200).json({
         success: true,
@@ -110,15 +102,7 @@ export class UserController {
         rules: Array.from(DEFAULT_USER_ADOPTER_RULES),
       });
 
-      const jwtData: UserJwt = {
-        sub: user.getId().toString(),
-        email: user.getEmail().toString(),
-        role: user.getRole(),
-        rules: Array.from(user.getRules()),
-        username: user.getUsername(),
-      };
-
-      const token = Jwt.generateToken(jwtData);
+      const token = Jwt.generateUserToken(user);
 
       res.status(201).json({
         success: true,
