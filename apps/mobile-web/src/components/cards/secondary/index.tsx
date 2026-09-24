@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ArrowRightIcon, FootprintsIcon } from 'phosphor-react-native';
+import { ArrowRightIcon } from 'phosphor-react-native';
 import { Text, View } from 'react-native';
 
 export interface SecondaryCardProps {
