@@ -6,13 +6,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { palette } from '@/theme/colors';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/contexts/authProvider';
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => new QueryClient());
   const [loaded, error] = useFonts({
     'BeVietnamPro-Bold': require('../assets/fonts/BeVietnamPro-Bold.ttf'),
     'BeVietnamPro-ExtraBold': require('../assets/fonts/BeVietnamPro-ExtraBold.ttf'),
@@ -36,7 +37,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
         <View
           style={{
             flex: 1,
@@ -83,6 +85,7 @@ export default function RootLayout() {
           </Stack>
         </View>
       </AuthProvider>
-    </SafeAreaProvider>
+    </QueryClientProvider>
+  </SafeAreaProvider>
   );
 }
