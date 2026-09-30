@@ -134,6 +134,18 @@ export class UserService {
     return user;
   }
 
+  public async getByIdWithRelationsData(id: string) {
+    const safeId = UUID.create(id);
+    const user =
+      await this.repository.findByIdCountingAndDataOfRelations(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`User With ID: ${id} not found`);
+    }
+
+    return user;
+  }
+
   public async countAll(): Promise<number> {
     return this.repository.countAll();
   }
@@ -255,11 +267,17 @@ export class UserService {
     }
 
     if (Encrypt.verifySaltHash(newPasswordPlainText, storedHash)) {
-      throw AppError.badRequest('A nova senha deve ser diferente da senha atual');
+      throw AppError.badRequest(
+        'A nova senha deve ser diferente da senha atual',
+      );
     }
 
-    const newHashedPassword = Encrypt.saltHash(newPasswordPlainText).toString('hex');
-    const updatedUser = await this.repository.updatePassword(safeId, newHashedPassword);
+    const newHashedPassword =
+      Encrypt.saltHash(newPasswordPlainText).toString('hex');
+    const updatedUser = await this.repository.updatePassword(
+      safeId,
+      newHashedPassword,
+    );
 
     if (!updatedUser) {
       throw AppError.internal('Erro ao atualizar a senha do usuário');
