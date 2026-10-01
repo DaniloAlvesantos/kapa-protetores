@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { palette } from '@/theme/colors';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -39,53 +38,55 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: palette.cream,
-          }}
-        >
-          <StatusBar style="light" />
+          <View className="flex-1 bg-cream">
+            <StatusBar style="light" />
 
-          <Stack>
-            <Stack.Screen
-              name="(protected)"
-              options={{
-                headerShown: false,
-              }}
-            />
+            <Stack>
+              <Stack.Screen
+                name="(protected)"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="signIn"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="signIn"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="signUp"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="signUp"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro-animal"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="cadastro-animal"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro-voluntario"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        </View>
-      </AuthProvider>
-    </QueryClientProvider>
-  </SafeAreaProvider>
+              <Stack.Screen
+                name="cadastro-voluntario"
+                options={{
+                  headerShown: false,
+                }}
+              />
+
+              <Stack.Screen
+                name="cadastro-usuario"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          </View>
+        </AuthProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

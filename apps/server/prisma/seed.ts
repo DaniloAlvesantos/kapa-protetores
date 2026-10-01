@@ -1,6 +1,6 @@
 import '../src/config/env';
 import { PrismaService } from '../src/database/PrismaService';
-import { Encrypt } from '../src/utils/Encypt';
+import { PasswordHasher } from '../src/security/PasswordHasher';
 
 function getRequiredEnvironmentVariable(name: string): string {
   const value = process.env[name]?.trim();
@@ -19,7 +19,7 @@ async function main(): Promise<void> {
 
   const email = getRequiredEnvironmentVariable('SEED_ADMIN_EMAIL');
   const password = getRequiredEnvironmentVariable('SEED_ADMIN_PASSWORD');
-  const passwordHash = Encrypt.saltHash(password).toString('hex');
+  const passwordHash = await new PasswordHasher().hash(password);
   const prismaService = PrismaService.getInstance();
 
   try {

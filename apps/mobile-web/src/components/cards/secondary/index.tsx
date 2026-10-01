@@ -36,8 +36,8 @@ export const SecondaryCard = (props: SecondaryCardProps) => {
         onPress={() => router.replace(link.href)}
         style={{ color: link.color }}
       >
-        {link.label} 
-        <ArrowRightIcon size={20} weight="bold" color={link.color} />   
+        {link.label}
+        <ArrowRightIcon size={20} weight="bold" color={link.color} />
       </Text>
     </View>
   );

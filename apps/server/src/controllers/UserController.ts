@@ -17,7 +17,7 @@ import {
   type UserWithCountAndDataOfRelations,
 } from '@kapa/shared';
 import { Jwt } from '../utils/Jwt';
-import { Encrypt } from '../utils/Encypt';
+import { PasswordHasher } from '../security/PasswordHasher';
 import { AppError } from '../errors/AppError';
 
 export class UserController {
@@ -158,7 +158,7 @@ export class UserController {
         );
       }
 
-      if (!Encrypt.verifySaltHash(password, userPassword)) {
+      if (!(await new PasswordHasher().verify(password, userPassword))) {
         throw AppError.unauthorized('E-mail ou senha incorretos');
       }
 

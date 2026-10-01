@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
 import { CalendarIcon, HandHeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { ScrollView } from 'react-native';
+import { canManageAnimals } from '@kapa/shared';
 
 const secondaryHomeCards: SecondaryCardProps[] = [
   {
@@ -51,12 +52,19 @@ export function HomeScreen() {
           description: 'Cadastre as ações da semana para os voluntários.',
           link: {
             label: 'Gerenciar semana',
-            href: '/(protected)/activities',
+            href: '/(protected)/manage-activities',
             color: palette.denim,
           },
         },
       ]
     : secondaryHomeCards;
+
+  const visibleCards = canManageAnimals(user?.role) ? [{
+    icon: { component: <PawPrintIcon size={24} color={palette.denim} weight="fill" />, backgroundColor: palette.peach },
+    title: 'Animais do abrigo',
+    description: 'Acompanhe os resgates e atualize os cuidados de cada animal.',
+    link: { label: 'Gerenciar animais', href: '/gestao/animais' as const, color: palette.denim },
+  }, ...cards] : cards;
 
   return (
     <ScrollView
@@ -69,7 +77,7 @@ export function HomeScreen() {
         contentContainerStyle={{ gap: 16 }}
         className="flex-row"
       >
-        {cards.map((card, index) => (
+        {visibleCards.map((card, index) => (
           <SecondaryCard key={index} {...card} />
         ))}
       </ScrollView>

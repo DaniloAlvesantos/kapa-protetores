@@ -104,6 +104,11 @@ export class UserRepository implements IUserRepository {
     };
   }
 
+  async findByIdValue(id: string): Promise<User | null> {
+    const data = await this.prisma.user.findUnique({ where: { id } });
+    return data ? this.mapToDomain(data) : null;
+  }
+
   async findByIdCountingAndDataOfRelations(
     id: UUID,
   ): Promise<UserWithCountAndDataOfRelations | null> {

@@ -44,4 +44,3 @@ export class AuthController {
 
   public signIn = this.googleSignIn;
 }
-

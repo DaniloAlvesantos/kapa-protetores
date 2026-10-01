@@ -11,7 +11,7 @@ import { Email } from '../domains/Email';
 import { UUID } from '../domains/UUID';
 import { Url } from '../domains/Url';
 import { DEFAULT_USER_ADOPTER_RULES } from '@kapa/shared';
-import { Encrypt } from '../utils/Encypt';
+import { PasswordHasher } from '../security/PasswordHasher';
 
 const googleClient = new OAuth2Client();
 
@@ -25,6 +25,8 @@ export class UserService {
       process.env.GOOGLE_IOS_CLIENT_ID,
       process.env.GOOGLE_ANDROID_CLIENT_ID,
     ].filter((id): id is string => Boolean(id));
+
+    if (audiences.length === 0) throw AppError.unauthorized('Login Google indisponível.');
 
     let email: string | undefined;
     let name: string | undefined;
@@ -208,7 +210,7 @@ export class UserService {
     }
 
     const hasedPassword = input.password
-      ? Encrypt.saltHash(input.password).toString('hex')
+      ? await new PasswordHasher().hash(input.password)
       : undefined;
 
     const user = new User();
@@ -257,7 +259,7 @@ export class UserService {
       );
     }
 
-    const isCurrentPasswordValid = Encrypt.verifySaltHash(
+    const isCurrentPasswordValid = await new PasswordHasher().verify(
       currentPasswordPlainText,
       storedHash,
     );
@@ -266,18 +268,12 @@ export class UserService {
       throw AppError.unauthorized('Senha atual incorreta');
     }
 
-    if (Encrypt.verifySaltHash(newPasswordPlainText, storedHash)) {
-      throw AppError.badRequest(
-        'A nova senha deve ser diferente da senha atual',
-      );
+    if (await new PasswordHasher().verify(newPasswordPlainText, storedHash)) {
+      throw AppError.badRequest('A nova senha deve ser diferente da senha atual');
     }
 
-    const newHashedPassword =
-      Encrypt.saltHash(newPasswordPlainText).toString('hex');
-    const updatedUser = await this.repository.updatePassword(
-      safeId,
-      newHashedPassword,
-    );
+    const newHashedPassword = await new PasswordHasher().hash(newPasswordPlainText);
+    const updatedUser = await this.repository.updatePassword(safeId, newHashedPassword);
 
     if (!updatedUser) {
       throw AppError.internal('Erro ao atualizar a senha do usuário');
