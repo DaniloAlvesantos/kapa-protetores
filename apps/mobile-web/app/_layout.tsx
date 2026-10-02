@@ -50,6 +50,13 @@ export default function RootLayout() {
               />
 
               <Stack.Screen
+                name="oauthredirect"
+                options={{
+                  headerShown: false,
+                }}
+              />
+
+              <Stack.Screen
                 name="signIn"
                 options={{
                   headerShown: false,

@@ -97,7 +97,7 @@ export default function TabLayout() {
         name="activities"
         options={{
           title: 'Atividades',
-          tabBarButton: user?.role === 'volunteer' ? undefined : () => null,
+          href: user?.role === 'volunteer' ? '/activities' : null,
           tabBarIcon: ({ color, size, focused }) => (
             <CalendarBlankIcon
               size={size}

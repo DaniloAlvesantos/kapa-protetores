@@ -25,7 +25,7 @@ export const PetCard = ({
     <TouchableOpacity
       activeOpacity={onPress ? 0.8 : 1}
       onPress={onPress}
-      className={`w-44 bg-white rounded-xl overflow-hidden border border-line ${className}`}
+      className={`w-48 sm:w-60 bg-white rounded-xl overflow-hidden border border-line ${className} transition-all duration-300 ease active:scale-[0.98]`}
       style={{
         shadowColor: '#121212',
         shadowOffset: {
@@ -47,12 +47,12 @@ export const PetCard = ({
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={onToggleFavorite}
-          className="absolute top-2.5 right-2.5 bg-cream/90 size-8 rounded-full items-center justify-center shadow-sm"
+          className="absolute top-2.5 right-2.5 bg-peach size-8 rounded-full items-center justify-center shadow-sm"
         >
           <HeartIcon
             size={18}
             weight={isFavorited ? 'fill' : 'bold'}
-            color={isFavorited ? palette.danger : palette.inkMuted}
+            color={palette.orange}
           />
         </TouchableOpacity>
       </View>
@@ -60,7 +60,7 @@ export const PetCard = ({
       <View className="p-3">
         <Text
           numberOfLines={1}
-          className="font-heading-bold text-base text-ink"
+          className="font-heading-bold text-base sm:text-lg text-ink"
         >
           {name}
         </Text>
@@ -68,7 +68,7 @@ export const PetCard = ({
         {characteristics.length > 0 && (
           <Text
             numberOfLines={1}
-            className="font-body text-xs text-ink-muted mt-0.5"
+            className="font-body text-xs sm:text-sm text-ink-muted mt-0.5"
           >
             {characteristics.join(' • ')}
           </Text>

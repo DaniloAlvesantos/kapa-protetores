@@ -40,6 +40,7 @@ O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores
 ### Verificações da funcionalidade
 
 - `npm run type-check` e `npm run lint`.
+- `npm run clean`: remove caches de build nativos (`android/app/build`, `.cxx`) e `.expo`, liberando gigabytes de espaço local sem afetar o repositório.
 - `npm test`: testes da API mais testes do modelo de edição; cobre perfis, revogação, token inválido/expirado, filtros, paginação, PATCH parcial, campos privados e autoelevação no cadastro público.
 - Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/tests/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
 
@@ -54,6 +55,8 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
 * **Fluxo no Cliente (`apps/mobile-web`)**:
   * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
   * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
+  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`).
+  * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) intercepta o retorno do navegador com tela de carregamento da marca (`ActivityIndicator` e mensagem amigável), evitando a exibição indevida da tela 404 / `+not-found.tsx` (`ErrorScreen`) enquanto a validação com a API é concluída.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
   * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
 
@@ -308,15 +311,12 @@ configurado como `media` quando o CSS é injetado pelo Metro no navegador.
 
 ---
 
-## 6. Validação de Qualidade, Husky e Testes
+## 6. Validação de Qualidade e Testes
 
-O projeto conta com verificações automatizadas de qualidade através do **Husky** (`.husky/pre-commit`), executando linting, checagem de tipos e testes antes de cada commit:
+O projeto conta com comandos unificados de validação de qualidade para checagem de tipos, linting e testes automatizados:
 
 ```bash
-# 1. Executar os hooks do pre-commit manualmente
-./.husky/pre-commit
-
-# 2. Bateria completa de testes automatizados do backend (60 testes em 17 suítes)
+# 1. Bateria completa de testes automatizados (backend + mobile-web)
 npm test
 
 # 3. Verificação de tipos TypeScript em todos os workspaces
@@ -469,3 +469,41 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - O workflow `.github/workflows/quality.yml` executa `npm ci`, lint e analise SonarCloud em pull requests.
 - O token deve existir nos secrets do repositorio com o nome `KAPA_SONAR`; o workflow o fornece ao scanner pela variavel `SONAR_TOKEN`. Nunca registrar o valor do token no repositorio ou em logs.
 - A analise usa `sonar.projectKey=GusttavoMLima_kapa-protetores` e `sonar.organization=gusttavomlima`, conforme `sonar-project.properties`.
+
+---
+
+## 9. Busca e Adoção de Animais (`SearchAdoptForm` e `AdoptScreen`)
+
+A aplicação mobile/web implementa o fluxo de busca e filtragem para adoção de animais resgatados na aba Adopet (`/(protected)/(tabs)/adopet` -> `AdoptScreen`):
+
+### 9.1 Componente `SearchAdoptForm`
+Localização: `apps/mobile-web/src/components/forms/searchAdopt/`
+
+* **Campos e Filtros Suportados**:
+  * `breed`: Busca textual por raça ou nome do animal via `SecondaryInputText` com ícone de lupa (`MagnifyingGlassIcon`).
+  * `specie`: Seleção de espécie via `PrimaryChipGroup` (`'all'` / Todos, `'dog'` / Cachorros, `'cat'` / Gatos).
+  * `gender`: Seleção de sexo via `PrimaryChipGroup` (`'all'` / Todos, `'male'` / Machos, `'female'` / Fêmeas).
+  * `size`: Seleção de porte via `PrimaryChipGroup` (`'all'` / Todos, `'small'` / Pequeno, `'medium'` / Médio, `'large'` / Grande).
+* **Desacoplamento e Arquitetura**:
+  * `model.ts`: Schemas Zod (`searchAdoptSchema`), tipos TypeScript estritos, opções padrão e função pura `matchesSearchAdoptFilters(animal, filters)`.
+  * `index.tsx`: Componente de interface React Native/Web com debounce automático de 350ms na digitação de texto, disparo imediato na troca de chips, botão colapsável de filtros secundários (Sexo e Porte) e botão para limpar todos os filtros quando ativos.
+
+### 9.2 Tela `AdoptScreen`
+Localização: `apps/mobile-web/src/screens/adopt/index.tsx`
+
+* **Consumo de API**: Realiza requisição para o endpoint público `GET /api/animals` utilizando `kapaService`.
+* **Tratamento de Estados**:
+  * **Carregamento**: Indicador `ActivityIndicator` com cor da paleta (`palette.orange`).
+  * **Erro**: Exibição de mensagem amigável com botão `PrimaryButton` para tentar novamente.
+  * **Vazio**: Estado diferenciado para quando não há nenhum animal no abrigo vs. quando a busca não encontrou resultados com os filtros selecionados, permitindo resetar os filtros em 1 toque.
+  * **Atualização**: Suporte a *pull-to-refresh* via `RefreshControl`.
+* **Exibição dos Animais**:
+  * Renderização em grade responsiva usando `PetCard`.
+  * Formatação automática de características (sexo, porte e idade formatada).
+  * Imagem padrão de fallback caso o animal não possua foto cadastrada.
+  * Controle de favoritos na interface.
+
+### 9.3 Testes Automatizados
+* **`apps/mobile-web/tests/search-adopt-model.test.mjs`**: Suíte de testes unitários que valida parsing do schema, rejeição de enumerações inválidas e precisão dos filtros (espécie, raça/nome case-insensitive, sexo e mapeamento numérico de porte).
+* Integrado ao pipeline e executado automaticamente via `npm test`.
+
