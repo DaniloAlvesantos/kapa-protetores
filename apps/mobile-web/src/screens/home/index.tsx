@@ -4,9 +4,14 @@ import {
 } from '@/components/cards/secondary';
 import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
-import { CalendarIcon, HandHeartIcon, PawPrintIcon } from 'phosphor-react-native';
-import { ScrollView } from 'react-native';
-import { canManageAnimals } from '@kapa/shared';
+import {
+  CalendarIcon,
+  HandHeartIcon,
+  PawPrintIcon,
+} from 'phosphor-react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { canManageAnimals, RecommendedAnimals } from '@kapa/shared';
+import { PetCard } from '@/components/cards/pet';
 
 const secondaryHomeCards: SecondaryCardProps[] = [
   {
@@ -37,15 +42,52 @@ const secondaryHomeCards: SecondaryCardProps[] = [
   },
 ];
 
+const mockFavorited: RecommendedAnimals[] = [
+  {
+    id: 'eqewq',
+    name: 'Gilda',
+    photo:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVc2eHkzKA26dGfeGx7aTgRLX7bYAGfmcEbwvEyWNp5w&s=10',
+    characteristics: ['Filhote', 'Fêmea'],
+  },
+  {
+    id: 'eqewqewq',
+    name: 'Gilda',
+    photo:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVc2eHkzKA26dGfeGx7aTgRLX7bYAGfmcEbwvEyWNp5w&s=10',
+    characteristics: ['Filhote', 'Fêmea'],
+    isFavorited: true,
+  },
+  {
+    id: 'eqewqewq1',
+    name: 'Gilda',
+    photo:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVc2eHkzKA26dGfeGx7aTgRLX7bYAGfmcEbwvEyWNp5w&s=10',
+    characteristics: ['Filhote', 'Fêmea'],
+    isFavorited: true,
+  },
+  {
+    id: 'eqewqewq2',
+    name: 'Gilda',
+    photo:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVc2eHkzKA26dGfeGx7aTgRLX7bYAGfmcEbwvEyWNp5w&s=10',
+    characteristics: ['Filhote', 'Fêmea'],
+    isFavorited: true,
+  },
+];
+
 export function HomeScreen() {
   const { user } = useAuth();
-  const canManageActivities = user?.role === 'admin' || user?.role === 'protector';
+  const canManageActivities =
+    user?.role === 'admin' || user?.role === 'protector';
   const cards: SecondaryCardProps[] = canManageActivities
     ? [
         ...secondaryHomeCards,
         {
           icon: {
-            component: <CalendarIcon size={24} color={palette.denim} weight="fill" />,
+            component: (
+              <CalendarIcon size={24} color={palette.denim} weight="fill" />
+            ),
             backgroundColor: palette.peach,
           },
           title: 'Organizar atividades',
@@ -59,12 +101,27 @@ export function HomeScreen() {
       ]
     : secondaryHomeCards;
 
-  const visibleCards = canManageAnimals(user?.role) ? [{
-    icon: { component: <PawPrintIcon size={24} color={palette.denim} weight="fill" />, backgroundColor: palette.peach },
-    title: 'Animais do abrigo',
-    description: 'Acompanhe os resgates e atualize os cuidados de cada animal.',
-    link: { label: 'Gerenciar animais', href: '/gestao/animais' as const, color: palette.denim },
-  }, ...cards] : cards;
+  const visibleCards = canManageAnimals(user?.role)
+    ? [
+        {
+          icon: {
+            component: (
+              <PawPrintIcon size={24} color={palette.denim} weight="fill" />
+            ),
+            backgroundColor: palette.peach,
+          },
+          title: 'Animais do abrigo',
+          description:
+            'Acompanhe os resgates e atualize os cuidados de cada animal.',
+          link: {
+            label: 'Gerenciar animais',
+            href: '/gestao/animais' as const,
+            color: palette.denim,
+          },
+        },
+        ...cards,
+      ]
+    : cards;
 
   return (
     <ScrollView
@@ -81,6 +138,26 @@ export function HomeScreen() {
           <SecondaryCard key={index} {...card} />
         ))}
       </ScrollView>
+
+      <View className="my-8">
+        <Text className="font-heading font-[800] tracking-wide text-xl">
+          Esperando por você
+        </Text>
+        <View className="grid grid-cols-2 grid-rows-2 sm:grid-rows-1 md:grid-cols-4 items-center justify-items-center gap-4 my-8">
+          {mockFavorited.map((pet) => (
+            <PetCard
+              key={pet.id}
+              name={pet.name}
+              imgUrl={pet.photo}
+              characteristics={pet.characteristics}
+              isFavorited={pet.isFavorited}
+            />
+          ))}
+        </View>
+        <Text className="mx-auto text-denim font-body font-bold text-lg active:underline hover:underline cursor-pointer">
+          Ver todos os 45 Pets
+        </Text>
+      </View>
     </ScrollView>
   );
 }

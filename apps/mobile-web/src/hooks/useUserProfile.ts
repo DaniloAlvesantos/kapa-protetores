@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 async function fetchProfileData(): Promise<UserWithCountAndDataOfRelations> {
   const response = await kapaService.get<
     ApiResponse<UserWithCountAndDataOfRelations>
-  >('/api/users/me/profile');
+  >('/users/me/profile');
 
   return response.data.data;
 }
