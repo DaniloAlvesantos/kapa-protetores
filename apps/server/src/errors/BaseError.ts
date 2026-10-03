@@ -1,3 +1,5 @@
+import { Response } from "express";
+
 interface BaseErrorProps {
   name: string;
   message: string;
@@ -17,5 +19,14 @@ export class BaseError extends Error {
     this.cause = cause;
 
     Error.captureStackTrace?.(this, this.constructor);
+  }
+
+  public sendResponse(res: Response) {
+    res.status(this.statusCode).json({
+      success: false,
+      data: null,
+      message: this.message,
+      error: this.name,
+    });
   }
 }
