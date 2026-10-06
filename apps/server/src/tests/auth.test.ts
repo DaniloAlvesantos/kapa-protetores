@@ -201,7 +201,7 @@ describe('AuthController', () => {
 });
 
 describe('UserService Google Authentication', () => {
-  it('should reject invalid or malformed token with AppError.unauthorized', async () => {
+  it('should reject invalid or malformed token with UnauthorizedError', async () => {
     const { UserService } = await import('../services/UserService');
     const mockRepo = {} as unknown as import('../repositories/UserRepository').UserRepository;
     const service = new UserService(mockRepo);
@@ -217,7 +217,7 @@ describe('UserService Google Authentication', () => {
     );
   });
 
-  it('should reject invalid non-jwt token with AppError.unauthorized', async () => {
+  it('should reject invalid non-jwt token with UnauthorizedError', async () => {
     const { UserService } = await import('../services/UserService');
     const mockRepo = {} as unknown as import('../repositories/UserRepository').UserRepository;
     const service = new UserService(mockRepo);

@@ -9,7 +9,8 @@ import {
   HandHeartIcon,
   PawPrintIcon,
 } from 'phosphor-react-native';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { canManageAnimals, RecommendedAnimals } from '@kapa/shared';
 import { PetCard } from '@/components/cards/pet';
 
@@ -143,7 +144,7 @@ export function HomeScreen() {
         <Text className="font-heading font-[800] tracking-wide text-xl">
           Esperando por você
         </Text>
-        <View className="grid grid-cols-2 grid-rows-2 sm:grid-rows-1 md:grid-cols-4 items-center justify-items-center gap-4 my-8">
+        <View className="flex-row flex-wrap justify-center sm:justify-start gap-4 my-8">
           {mockFavorited.map((pet) => (
             <PetCard
               key={pet.id}
@@ -154,9 +155,15 @@ export function HomeScreen() {
             />
           ))}
         </View>
-        <Text className="mx-auto text-denim font-body font-bold text-lg active:underline hover:underline cursor-pointer">
-          Ver todos os 45 Pets
-        </Text>
+        <Pressable
+          onPress={() => router.push('/adopet')}
+          accessibilityRole="button"
+          accessibilityLabel="Ver todos os pets para adoção"
+        >
+          <Text className="mx-auto text-denim font-body font-bold text-lg active:underline">
+            Ver todos os 45 Pets
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );

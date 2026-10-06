@@ -40,6 +40,7 @@ export function SearchAdoptForm({
   }, [onSearch]);
 
   const prevFiltersRef = useRef(filters);
+  const isFirstRender = useRef(true);
 
   const hasActiveFilters = useMemo(
     () =>
@@ -60,6 +61,11 @@ export function SearchAdoptForm({
   }, [filters.gender, filters.size]);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     const prev = prevFiltersRef.current;
     const chipsChanged =
       prev.specie !== filters.specie ||

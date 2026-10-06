@@ -167,7 +167,7 @@ export const PrimaryButton = memo(
               'absolute top-0 bottom-0 justify-center items-center',
               iconPositionClasses,
             )}
-            pointerEvents="none"
+            style={{ pointerEvents: 'none' }}
           >
             {icon}
           </View>
