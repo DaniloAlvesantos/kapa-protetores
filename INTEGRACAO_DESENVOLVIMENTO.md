@@ -507,3 +507,67 @@ Localização: `apps/mobile-web/src/screens/adopt/index.tsx`
 * **`apps/mobile-web/tests/search-adopt-model.test.mjs`**: Suíte de testes unitários que valida parsing do schema, rejeição de enumerações inválidas e precisão dos filtros (espécie, raça/nome case-insensitive, sexo e mapeamento numérico de porte).
 * Integrado ao pipeline e executado automaticamente via `npm test`.
 
+---
+
+## 10. Arquitetura de Erros da API (`apps/server/src/errors`)
+
+A camada de tratamento e propagação de erros do servidor foi padronizada através de classes de erro dedicadas e extensíveis derivadas de `BaseError`:
+
+* **`BaseError` (`BaseError.ts`)**: Classe base que estende `Error`, armazena `statusCode`, `name`, `message`, `cause` e `details`.
+* **Classes de Erro Especializadas**:
+  * `BadRequestError` (HTTP 400): Entrada de dados malformada ou parâmetros inválidos, com suporte a detalhes de validação (`details`).
+  * `UnauthorizedError` (HTTP 401): Credenciais incorretas, token JWT ausente, inválido ou expirado.
+  * `ForbiddenError` (HTTP 403): Permissão insuficiente de papel ou recurso protegido contra acesso indevido.
+  * `NotFoundError` (HTTP 404): Entidade ou recurso não localizado no banco de dados.
+  * `ConflictError` (HTTP 409): Violação de unicidade (ex: e-mail duplicado) ou regra de negócio concorrente (ex: atividade lotada).
+  * `InternalServerError` (HTTP 500): Falhas internas inesperadas.
+  * `ValidationError` / `DataTypeError` (HTTP 400): Erros de tipagem e formato.
+  * `ServiceError` (HTTP 500): Falha de integração de serviço.
+* **Centralização no `ErrorHandler` (`middlewares/ErrorHandler.ts`)**:
+  * Captura instâncias de `BaseError` com `statusCode < 500` e formata a resposta padronizada `ApiErrorResponse` (`{ success: false, error: message, details }`).
+  * Erros 500 ou desconhecidos são mascarados como `Internal Server Error` para proteger detalhes internos do servidor, com log estruturado via `console.error`.
+
+---
+
+### 11. Conexão de Banco de Dados Remota / Supabase (`PrismaService.ts`)
+
+* **Configuração de Pool Resiliente**:
+  * O `pg.Pool` detecta conexões remotas (URLs contendo `supabase` ou `pooler.supabase.com`, ou ambiente de produção) e ativa automaticamente SSL com `{ rejectUnauthorized: false }`.
+  * `connectionTimeoutMillis` aumentado para `15000` (15 segundos) para suportar latência e handshakes TLS de instâncias em nuvem.
+  * Registro de listener `pool.on('error')` para tratar encerramentos de conexões ociosas (idle) por parte do pooler do Supabase sem derrubar a aplicação.
+  * Recomenda-se utilizar a URL do **Connection Pooler (Supavisor)** do Supabase (porta `5432` Session ou `6543` Transaction com `?sslmode=require`) para compatibilidade com redes locais IPv4.
+
+---
+
+### 12. Tratamento de Expiração de Sessão no Frontend (`apps/mobile-web`)
+
+* **Validação Prévia de Expiração de JWT (`authProvider.tsx`)**:
+  * Ao carregar o estado persistido (`genericStorage`), o frontend decodifica o payload do token (`exp`) e verifica se já expirou (`Date.now() >= exp * 1000`).
+  * Em caso de token expirado, os dados do storage são purgados automaticamente, evitando renderizar telas protegidas com credenciais inválidas.
+* **Interceptor de Resposta Axios (`kapaService.ts`)**:
+  * Adicionado interceptor para capturar status `401` ou `403` (quando indica token inválido ou expirado), disparando o callback de logout para limpar o estado e redirecionar para `/signIn`.
+
+---
+
+### 13. Otimizações de Performance Mobile e Prevenção de Chamadas Duplicadas de API
+
+* **Controle de Retentativas e Foco no TanStack Query (`_layout.tsx` e `useUserProfile.ts`)**:
+  * Configurado `refetchOnWindowFocus: false` globalmente e no hook `useUserProfile` para evitar refetching automático e desnecessário toda vez que o aplicativo mobile ou aba do navegador recupera o foco.
+  * Implementada regra condicional de retentativas (`retry: (failureCount, error) => ...`) que cancela retentativas imediatas em erros `401`, `403` e `404` (onde repetir a mesma requisição sem novas credenciais causava disparos triplos de requisições ao servidor).
+* **Guarda Síncrona contra Duplo Clique / Submissões Duplicadas (`useRef`)**:
+  * Adicionado bloqueio com flag síncrona `inFlightRef.current` / `savingRef.current` nas ações de envio de formulários em `cadastroAnimal`, `cadastroVoluntario`, `activities` e `volunteerActivities` (inscrição).
+  * Previne que toques rápidos múltiplos na tela mobile enviem requisições `POST` concorrentes antes que o estado reativo de `loading` desabilite o botão.
+* **Prevenção de Disparo Prematuro de Filtros (`SearchAdoptForm.tsx`)**:
+  * Adicionado `isFirstRender` para não acionar o timer de debounce de 350ms na montagem inicial da tela de adoção quando os filtros ainda não foram alterados pelo usuário, evitando renderizações em cascata e recálculos desnecessários na lista de pets.
+* **Memoização do Contexto de Autenticação (`authProvider.tsx`)**:
+  * O objeto `value` do `AuthContext.Provider` agora é envolvido em `useMemo`, prevenindo renderizações em cascata por toda a árvore de componentes da aplicação quando o provedor renderiza sem alteração no usuário/estado de login.
+* **Compatibilidade do Motor Yoga / Flexbox Mobile (`HomeScreen.tsx`)**:
+  * Removido o uso de classes CSS Grid (`grid grid-cols-2...`), que não são suportadas pelo motor de layout Yoga no React Native nativo (iOS/Android), substituindo por Flexbox responsivo (`flex-row flex-wrap justify-between gap-4`).
+  * Transformado o link "Ver todos os 45 Pets" em elemento interativo com `router.push('/adopet')`.
+* **Memoização de Lista e Eliminação de Warnings de Sombra (`PetCard` e componentes)**:
+  * `PetCard` encapsulado em `React.memo` com comparador customizado de propriedades (comparando nome, foto, favorito e características), evitando re-renderizar todos os cartões de pets em massa durante pesquisas ou interações.
+  * Substituído o uso de propriedades depreciadas `shadow*` por `Platform.select`: `boxShadow` na Web (eliminando warnings no console), `elevation` no Android e sombras nativas no iOS.
+
+
+
+
