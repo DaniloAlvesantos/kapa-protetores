@@ -20,34 +20,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-
-const FAQ_ITEMS = [
-  {
-    question: 'Como o valor das doações é utilizado?',
-    answer:
-      '100% dos recursos são aplicados diretamente no bem-estar animal: consultas veterinárias, cirurgias ortopédicas e de castração, vacinas V10 e antirrábica, medicamentos contínuos e alimentação de alta qualidade para os resgatados.',
-  },
-  {
-    question: 'Existe algum valor mínimo para doar via PIX?',
-    answer:
-      'Não há valor mínimo! Toda ajuda, seja de R$ 5, R$ 10 ou R$ 50, faz uma diferença imediata na compra de ração e medicamentos da semana.',
-  },
-  {
-    question: 'Como funciona ser Lar Temporário (LT)?',
-    answer:
-      'Você acolhe um animal em recuperação ou à espera de adoção em sua casa. A KAPA fornece toda a ração necessária, medicamentos e acompanhamento veterinário sem custos para você.',
-  },
-  {
-    question: 'Onde posso entregar doações de ração e cobertores?',
-    answer:
-      'Temos pontos de arrecadação parceiros em Mogi Guaçu (clínicas veterinárias e pet shops conveniados). Aceitamos ração lacrada, sachês, cobertores, toalhas e materiais de limpeza.',
-  },
-  {
-    question: 'Como posso me voluntariar para ajudar no abrigo?',
-    answer:
-      'Você pode se cadastrar como voluntário diretamente pelo aplicativo! Organizamos mutirões de cuidados, passeios, dias de banho e feiras de adoção aos finais de semana.',
-  },
-];
+import { FAQ_SUPPORT_ITEMS } from '@kapa/shared'
 
 export function SupportScreen() {
   const [currentQuestion, setCurrentQuestion] = useState<number>();
@@ -60,7 +33,7 @@ export function SupportScreen() {
       <View className="-mx-4 relative">
         <Image
           source={{
-            uri: 'https://images.unsplash.com/photo-1790646394476-04b32b61a2c1?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            uri: 'https://images.unsplash.com/photo-1763718170991-baa67106743b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGRvZ3xlbnwwfHwwfHx8MA%3D%3D',
           }}
           className="w-full h-[12rem] md:h-[20rem] object-cover"
         />
@@ -178,7 +151,7 @@ export function SupportScreen() {
           </Text>
         </View>
         <View className="flex-col gap-4">
-          {FAQ_ITEMS.map((faq, index) => {
+          {FAQ_SUPPORT_ITEMS.map((faq, index) => {
             const isCurrent = currentQuestion === index;
 
             return (
