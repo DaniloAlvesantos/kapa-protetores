@@ -568,6 +568,19 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * `PetCard` encapsulado em `React.memo` com comparador customizado de propriedades (comparando nome, foto, favorito e características), evitando re-renderizar todos os cartões de pets em massa durante pesquisas ou interações.
   * Substituído o uso de propriedades depreciadas `shadow*` por `Platform.select`: `boxShadow` na Web (eliminando warnings no console), `elevation` no Android e sombras nativas no iOS.
 
+---
 
+### 14. Extensão de Schema e Perfil do Adotante (`tb_adopter_profiles`)
 
-
+* **Migration `20261007111800_add_adopter_profile_and_indexes`**:
+  * **Tabela `tb_adopter_profiles`**:
+    * Armazena preferências declaradas pelo adotante para matchmaking e filtros recomendados:
+      * `preferred_species` (`Species`: `dog`, `cat`, `other`)
+      * `preferred_gender` (`Genders`: `male`, `female`)
+      * `preferred_size`, `preferred_energy`, `preferred_kid_friendly`, `preferred_noise`, `preferred_age_stage` (`Int`)
+      * `lives_in_apartment` (`Boolean`), `has_other_pets` (`Boolean`)
+    * Vínculo 1:1 único com `tb_users` (`user_id` único com `onDelete: Cascade` e `onUpdate: Cascade`).
+    * Campos de auditoria `created_at` e `updated_at`.
+  * **Índices de Performance em `tb_events`**:
+    * Adicionado índice em `tb_events(animal_id)` (`tb_events_animalId_idx`).
+    * Adicionado índice composto em `tb_events(user_id, type)` (`tb_events_userId_type_idx`) para aceleração de consultas e agregação de histórico/atividades por usuário e tipo.
