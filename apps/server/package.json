@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "docker compose up -d redis && tsx watch src/index.ts",
-    "build": "prisma generate && tsc",
+    "build": "npm run build --workspace=@kapa/shared && prisma generate && tsc",
     "test": "npm run build && tsx --test src/security/*.test.ts src/services/*.test.ts src/validation/*.test.ts src/tests/*.test.ts",
     "start": "node dist/index.js",
     "lint": "eslint .",
@@ -13,6 +13,7 @@
     "test:k6:load": "docker compose run --rm k6 run /scripts/load-test.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio"
   },
