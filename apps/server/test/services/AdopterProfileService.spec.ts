@@ -1,5 +1,6 @@
 import { AdopterProfileService } from '../../src/services/AdopterProfileService';
 import { IAdopterProfileRepository, AdopterPreferences } from '../../src/interfaces';
+import type { CreateAdopterProfileInput } from '@kapa/shared';
 import { AdopterProfile } from '../../src/models';
 import { UUID } from '../../src/domains/UUID';
 import {
@@ -175,12 +176,12 @@ describe('AdopterProfileService', () => {
   });
 
   it('should reject create with missing or invalid input', async () => {
-    await expect(service.create(null as any)).rejects.toBeInstanceOf(
-      BadRequestError,
-    );
+    await expect(
+      service.create(null as unknown as CreateAdopterProfileInput),
+    ).rejects.toBeInstanceOf(BadRequestError);
 
     await expect(
-      service.create({ userId: '' } as any),
+      service.create({ userId: '' } as unknown as CreateAdopterProfileInput),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 

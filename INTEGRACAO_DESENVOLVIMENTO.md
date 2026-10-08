@@ -692,3 +692,21 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     4. **Integridade e Restrições Estruturais**:
        * Verificação de rejeição de perfil duplicado para o mesmo usuário via constraint única 1:1 (erro `P2002`).
        * Verificação de propagação de deleção em cascata (`ON DELETE CASCADE`) na remoção do usuário pai.
+
+---
+
+### 18. Otimização de Peso do Monorepo e Limpeza de Dependências
+
+* **Remoção de `@expo/vector-icons` (`apps/mobile-web`)**:
+  * Removido de `dependencies` (economia de ~6.5 MB no disco e menor overhead no bundling Web/Metro).
+  * O aplicativo padroniza exclusivamente a biblioteca `phosphor-react-native` em todos os ícones da interface.
+* **Remoção de `@prisma/dev` (`apps/server`)**:
+  * Removido de `devDependencies` (economia de ~19 MB no disco).
+  * O monorepo utiliza contêineres PostgreSQL oficiais (`postgres:16-alpine`) para testes e desenvolvimento via Docker Compose e Testcontainers, dispensando os runtimes experimentais PGlite/Bun do `@prisma/dev`.
+* **Eliminação de Redundâncias e Tipagens Legadas**:
+  * Removido `testcontainers` explícito de `apps/server/package.json` (mantendo `@testcontainers/postgresql`, que já fornece a dependência).
+  * Removido `@types/redis` (legado v4) de `apps/server`, visto que `redis` v6 já embute definições TypeScript oficiais em `dist/index.d.ts`.
+  * Removido `@react-native/jest-preset` da raiz `package.json` (gerenciado isoladamente no workspace `apps/mobile-web`).
+* **Otimização de Performance do Testcontainers**:
+  * Adicionadas flags de PostgreSQL em memória (`fsync=off`, `synchronous_commit=off`, `full_page_writes=off`) e `npx --no-install prisma migrate deploy` no helper [`postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts).
+

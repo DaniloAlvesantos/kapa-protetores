@@ -15,11 +15,20 @@ export interface TestDatabaseContext {
 }
 
 export async function setupTestDatabase(): Promise<TestDatabaseContext> {
-  // 1. Inicia o contêiner PostgreSQL via Testcontainers
+  // 1. Inicia o contêiner PostgreSQL via Testcontainers com otimizações para testes
   const container = await new PostgreSqlContainer('postgres:16-alpine')
     .withDatabase('test')
     .withUsername('test')
     .withPassword('test')
+    .withCommand([
+      'postgres',
+      '-c',
+      'fsync=off',
+      '-c',
+      'synchronous_commit=off',
+      '-c',
+      'full_page_writes=off',
+    ])
     .start();
 
   const uri = container.getConnectionUri();
@@ -29,7 +38,7 @@ export async function setupTestDatabase(): Promise<TestDatabaseContext> {
 
   // 2. Aplica as migrações Prisma ao banco de dados no contêiner
   const serverRoot = path.resolve(__dirname, '../..');
-  execSync('npx prisma migrate deploy', {
+  execSync('npx --no-install prisma migrate deploy', {
     env: { ...process.env, DIRECT_URL: uri, DATABASE_URL: uri },
     cwd: serverRoot,
     stdio: 'ignore',

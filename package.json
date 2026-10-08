@@ -31,7 +31,6 @@
     "test:k6:load": "npm run test:k6:load --workspace=@kapa/server"
   },
   "devDependencies": {
-    "@react-native/jest-preset": "0.86.3",
     "concurrently": "^9.1.2",
     "prisma": "^7.10.0"
   },

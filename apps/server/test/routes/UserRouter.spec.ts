@@ -19,9 +19,12 @@ describe('UserRouter Endpoints Coverage', () => {
     } as unknown as UserController;
 
     const userRouter = new UserRouter(mockController);
-    const registered = (userRouter.router.stack as any[]).map((layer) => ({
+    const stack = userRouter.router.stack as Array<{
+      route?: { path: string; methods: Record<string, boolean> };
+    }>;
+    const registered = stack.map((layer) => ({
       path: layer.route?.path,
-      methods: (layer.route as { methods?: Record<string, boolean> } | undefined)?.methods,
+      methods: layer.route?.methods,
     }));
 
     // Public routes

@@ -24,11 +24,15 @@ describe('AdopterProfileRouter', () => {
 
     const adopterProfileRouter = new AdopterProfileRouter(mockController);
 
-    const registeredRoutes = (adopterProfileRouter.router.stack as any[])
+    const stack = adopterProfileRouter.router.stack as Array<{
+      route?: { path: string; methods: Record<string, boolean> };
+    }>;
+
+    const registeredRoutes = stack
       .filter((layer) => layer.route)
       .map((layer) => ({
-        path: layer.route.path,
-        methods: Object.keys(layer.route.methods),
+        path: layer.route!.path,
+        methods: Object.keys(layer.route!.methods),
       }));
 
     const paths = registeredRoutes.map((r) => r.path);
