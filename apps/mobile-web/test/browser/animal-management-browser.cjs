@@ -51,7 +51,7 @@ async function main() {
     const pageErrors = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
     const base = process.env.ANIMAL_UI_URL || 'http://localhost:8081';
-    const output = path.resolve(__dirname, '../.expo/animal-management-qa');
+    const output = path.resolve(__dirname, '../../.expo/animal-management-qa');
     fs.mkdirSync(output, { recursive: true });
     await page.goto(`${base}/gestao/animais`, { timeout: 180000 });
     await page.getByRole('button', { name: 'Editar Amora', exact: true }).waitFor({ timeout: 180000 });

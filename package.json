@@ -23,7 +23,7 @@
     "prisma:studio": "npm run prisma:studio --workspace=apps/server",
     "clean:build": "rm -rf apps/mobile-web/android/app/build apps/mobile-web/android/app/.cxx apps/mobile-web/.expo",
     "clean": "npm run clean:build",
-    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
+    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/server/test/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
     "test": "npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web",
     "test:mobile": "npm run test --workspace=@kapa/mobile-web",
     "test:server": "npm run test --workspace=@kapa/server",

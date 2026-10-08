@@ -36,6 +36,7 @@
   "devDependencies": {
     "@kapa/eslint-config": "*",
     "@prisma/dev": "^0.24.17",
+    "@testcontainers/postgresql": "^12.2.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
@@ -47,6 +48,7 @@
     "eslint": "^9.39.5",
     "jest": "^30.5.2",
     "prisma": "^7.10.0",
+    "testcontainers": "^12.2.0",
     "ts-jest": "^29.4.14",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
