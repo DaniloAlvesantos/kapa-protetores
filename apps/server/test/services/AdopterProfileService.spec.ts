@@ -1,14 +1,12 @@
-import { describe, it, beforeEach } from 'node:test';
-import assert from 'node:assert';
-import { AdopterProfileService } from '../services/AdopterProfileService';
-import { IAdopterProfileRepository, AdopterPreferences } from '../interfaces';
-import { AdopterProfile } from '../models';
-import { UUID } from '../domains/UUID';
+import { AdopterProfileService } from '../../src/services/AdopterProfileService';
+import { IAdopterProfileRepository, AdopterPreferences } from '../../src/interfaces';
+import { AdopterProfile } from '../../src/models';
+import { UUID } from '../../src/domains/UUID';
 import {
   BadRequestError,
   NotFoundError,
   ConflictError,
-} from '../errors';
+} from '../../src/errors';
 
 class MockAdopterProfileRepository implements IAdopterProfileRepository {
   public profiles: AdopterProfile[] = [];
@@ -115,18 +113,18 @@ describe('AdopterProfileService', () => {
   });
 
   it('should countAll and getAll profiles', async () => {
-    assert.strictEqual(await service.countAll(), 0);
-    assert.deepStrictEqual(await service.getAll(), []);
+    expect(await service.countAll()).toBe(0);
+    expect(await service.getAll()).toEqual([]);
 
     await service.create({
       userId: sampleUserId,
       preferredSpecies: 'dog',
     });
 
-    assert.strictEqual(await service.countAll(), 1);
+    expect(await service.countAll()).toBe(1);
     const all = await service.getAll();
-    assert.strictEqual(all.length, 1);
-    assert.strictEqual(all[0].getPreferredSpecies(), 'dog');
+    expect(all.length).toBe(1);
+    expect(all[0].getPreferredSpecies()).toBe('dog');
   });
 
   it('should get profile by id or throw NotFoundError', async () => {
@@ -136,12 +134,11 @@ describe('AdopterProfileService', () => {
     });
 
     const found = await service.getById(created.getId().getValue());
-    assert.strictEqual(found.getUserId().getValue(), sampleUserId);
+    expect(found.getUserId().getValue()).toBe(sampleUserId);
 
-    await assert.rejects(
-      () => service.getById('999e4567-e89b-12d3-a456-426614174999'),
-      NotFoundError,
-    );
+    await expect(
+      service.getById('999e4567-e89b-12d3-a456-426614174999'),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('should get profile by userId or throw NotFoundError', async () => {
@@ -151,12 +148,11 @@ describe('AdopterProfileService', () => {
     });
 
     const found = await service.getByUserId(sampleUserId);
-    assert.strictEqual(found.getPreferredGender(), 'female');
+    expect(found.getPreferredGender()).toBe('female');
 
-    await assert.rejects(
-      () => service.getByUserId('999e4567-e89b-12d3-a456-426614174999'),
-      NotFoundError,
-    );
+    await expect(
+      service.getByUserId('999e4567-e89b-12d3-a456-426614174999'),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('should create an adopter profile and reject duplicate for same user', async () => {
@@ -167,29 +163,25 @@ describe('AdopterProfileService', () => {
       livesInApartment: true,
     });
 
-    assert.strictEqual(created.getPreferredSpecies(), 'dog');
-    assert.strictEqual(created.getPreferredSize(), 3);
-    assert.strictEqual(created.getLivesInApartment(), true);
+    expect(created.getPreferredSpecies()).toBe('dog');
+    expect(created.getPreferredSize()).toBe(3);
+    expect(created.getLivesInApartment()).toBe(true);
 
-    await assert.rejects(
-      () =>
-        service.create({
-          userId: sampleUserId,
-        }),
-      ConflictError,
-    );
+    await expect(
+      service.create({
+        userId: sampleUserId,
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('should reject create with missing or invalid input', async () => {
-    await assert.rejects(
-      () => service.create(null as any),
+    await expect(service.create(null as any)).rejects.toBeInstanceOf(
       BadRequestError,
     );
 
-    await assert.rejects(
-      () => service.create({ userId: '' } as any),
-      BadRequestError,
-    );
+    await expect(
+      service.create({ userId: '' } as any),
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it('should update profile by userId', async () => {
@@ -205,19 +197,17 @@ describe('AdopterProfileService', () => {
       hasOtherPets: true,
     });
 
-    assert.strictEqual(updated.getPreferredSpecies(), 'cat');
-    assert.strictEqual(updated.getPreferredEnergy(), 5);
-    assert.strictEqual(updated.getHasOtherPets(), true);
+    expect(updated.getPreferredSpecies()).toBe('cat');
+    expect(updated.getPreferredEnergy()).toBe(5);
+    expect(updated.getHasOtherPets()).toBe(true);
   });
 
   it('should throw NotFoundError when updating non-existent profile by userId', async () => {
-    await assert.rejects(
-      () =>
-        service.updateByUserId(sampleUserId, {
-          preferredSpecies: 'dog',
-        }),
-      NotFoundError,
-    );
+    await expect(
+      service.updateByUserId(sampleUserId, {
+        preferredSpecies: 'dog',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('should upsert profile correctly (create when absent, update when present)', async () => {
@@ -225,15 +215,15 @@ describe('AdopterProfileService', () => {
       preferredSpecies: 'dog',
       preferredSize: 2,
     });
-    assert.strictEqual(created.getPreferredSpecies(), 'dog');
-    assert.strictEqual(created.getPreferredSize(), 2);
+    expect(created.getPreferredSpecies()).toBe('dog');
+    expect(created.getPreferredSize()).toBe(2);
 
     const updated = await service.upsert(sampleUserId, {
       preferredSize: 4,
     });
-    assert.strictEqual(updated.getPreferredSpecies(), 'dog');
-    assert.strictEqual(updated.getPreferredSize(), 4);
-    assert.strictEqual(await service.countAll(), 1);
+    expect(updated.getPreferredSpecies()).toBe('dog');
+    expect(updated.getPreferredSize()).toBe(4);
+    expect(await service.countAll()).toBe(1);
   });
 
   it('should delete profile by id and by userId', async () => {
@@ -245,15 +235,16 @@ describe('AdopterProfileService', () => {
     });
 
     const deleted1 = await service.delete(profile1.getId().getValue());
-    assert.strictEqual(deleted1.getId().getValue(), profile1.getId().getValue());
-    assert.strictEqual(await service.countAll(), 1);
+    expect(deleted1.getId().getValue()).toBe(profile1.getId().getValue());
+    expect(await service.countAll()).toBe(1);
 
-    const deleted2 = await service.deleteByUserId('333e4567-e89b-12d3-a456-426614174333');
-    assert.strictEqual(deleted2.getId().getValue(), profile2.getId().getValue());
-    assert.strictEqual(await service.countAll(), 0);
+    const deleted2 = await service.deleteByUserId(
+      '333e4567-e89b-12d3-a456-426614174333',
+    );
+    expect(deleted2.getId().getValue()).toBe(profile2.getId().getValue());
+    expect(await service.countAll()).toBe(0);
 
-    await assert.rejects(
-      () => service.delete(sampleProfileId),
+    await expect(service.delete(sampleProfileId)).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });

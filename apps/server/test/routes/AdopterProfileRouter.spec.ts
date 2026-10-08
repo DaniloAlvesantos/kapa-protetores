@@ -1,7 +1,5 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
-import { AdopterProfileRouter } from '../routes/AdopterProfileRouter';
-import { AdopterProfileController } from '../controllers/AdopterProfileController';
+import { AdopterProfileRouter } from '../../src/routes/AdopterProfileRouter';
+import { AdopterProfileController } from '../../src/controllers/AdopterProfileController';
 
 describe('AdopterProfileRouter', () => {
   it('should register all expected routes with correct paths and methods', () => {
@@ -26,7 +24,7 @@ describe('AdopterProfileRouter', () => {
 
     const adopterProfileRouter = new AdopterProfileRouter(mockController);
 
-    const registeredRoutes = adopterProfileRouter.router.stack
+    const registeredRoutes = (adopterProfileRouter.router.stack as any[])
       .filter((layer) => layer.route)
       .map((layer) => ({
         path: layer.route.path,
@@ -35,21 +33,21 @@ describe('AdopterProfileRouter', () => {
 
     const paths = registeredRoutes.map((r) => r.path);
 
-    assert.ok(paths.includes('/count'), 'Missing /count route');
-    assert.ok(paths.includes('/all'), 'Missing /all route');
-    assert.ok(paths.includes('/me'), 'Missing /me route');
-    assert.ok(paths.includes('/preferences/search'), 'Missing /preferences/search route');
-    assert.ok(paths.includes('/preference'), 'Missing /preference route');
-    assert.ok(paths.includes('/'), 'Missing / route');
-    assert.ok(paths.includes('/user/:id'), 'Missing /user/:id route');
-    assert.ok(paths.includes('/:id'), 'Missing /:id route');
+    expect(paths).toContain('/count');
+    expect(paths).toContain('/all');
+    expect(paths).toContain('/me');
+    expect(paths).toContain('/preferences/search');
+    expect(paths).toContain('/preference');
+    expect(paths).toContain('/');
+    expect(paths).toContain('/user/:id');
+    expect(paths).toContain('/:id');
 
     // Verify /me supports GET, PUT, PATCH, DELETE
     const meRoutes = registeredRoutes.filter((r) => r.path === '/me');
     const meMethods = meRoutes.flatMap((r) => r.methods);
-    assert.ok(meMethods.includes('get'));
-    assert.ok(meMethods.includes('put'));
-    assert.ok(meMethods.includes('patch'));
-    assert.ok(meMethods.includes('delete'));
+    expect(meMethods).toContain('get');
+    expect(meMethods).toContain('put');
+    expect(meMethods).toContain('patch');
+    expect(meMethods).toContain('delete');
   });
 });

@@ -1,9 +1,7 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
 import type { Request, Response } from 'express';
-import { AdopterProfileController } from '../controllers/AdopterProfileController';
-import { AdopterProfileService } from '../services/AdopterProfileService';
-import { AdopterProfile } from '../models/AdopterProfile';
+import { AdopterProfileController } from '../../src/controllers/AdopterProfileController';
+import { AdopterProfileService } from '../../src/services/AdopterProfileService';
+import { AdopterProfile } from '../../src/models/AdopterProfile';
 import type { ApiResponse, AdopterProfile as SharedAdopterProfile } from '@kapa/shared';
 
 function createMockResponse() {
@@ -51,10 +49,10 @@ describe('AdopterProfileController', () => {
 
     await controller.countAll({} as Request, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<number>();
-    assert.strictEqual(body.success, true);
-    assert.strictEqual(body.data, 42);
+    expect(body.success).toBe(true);
+    expect(body.data).toBe(42);
   });
 
   it('getAll should return 200 with mapped DTO profiles', async () => {
@@ -68,11 +66,11 @@ describe('AdopterProfileController', () => {
 
     await controller.getAll({} as Request, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile[]>();
-    assert.strictEqual(body.success, true);
-    assert.strictEqual(body.data.length, 1);
-    assert.strictEqual(body.data[0].preferredSpecies, 'dog');
+    expect(body.success).toBe(true);
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].preferredSpecies).toBe('dog');
   });
 
   it('getById should return 200 with profile DTO', async () => {
@@ -89,10 +87,10 @@ describe('AdopterProfileController', () => {
 
     await controller.getById(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.success, true);
-    assert.strictEqual(body.data.id, '223e4567-e89b-12d3-a456-426614174001');
+    expect(body.success).toBe(true);
+    expect(body.data.id).toBe('223e4567-e89b-12d3-a456-426614174001');
   });
 
   it('getById should forward error when param id is invalid', async () => {
@@ -104,7 +102,7 @@ describe('AdopterProfileController', () => {
       forwardedError = err;
     });
 
-    assert.ok(forwardedError);
+    expect(forwardedError).toBeDefined();
   });
 
   it('getByUserId should return 200 with profile DTO', async () => {
@@ -121,9 +119,9 @@ describe('AdopterProfileController', () => {
 
     await controller.getByUserId(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.data.userId, '123e4567-e89b-12d3-a456-426614174000');
+    expect(body.data.userId).toBe('123e4567-e89b-12d3-a456-426614174000');
   });
 
   it('getByPreferences should return 200 with filtered profiles', async () => {
@@ -142,9 +140,9 @@ describe('AdopterProfileController', () => {
 
     await controller.getByPreferences(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile[]>();
-    assert.strictEqual(body.data.length, 1);
+    expect(body.data.length).toBe(1);
   });
 
   it('getByPreference should return 200 with query-based filter', async () => {
@@ -169,9 +167,9 @@ describe('AdopterProfileController', () => {
 
     await controller.getByPreference(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
-    assert.strictEqual(searchedKey, 'preferredSpecies');
-    assert.strictEqual(searchedValue, 'dog');
+    expect(mockRes.getStatusCode()).toBe(200);
+    expect(searchedKey).toBe('preferredSpecies');
+    expect(searchedValue).toBe('dog');
   });
 
   it('create should return 201 with created profile DTO', async () => {
@@ -192,10 +190,10 @@ describe('AdopterProfileController', () => {
 
     await controller.create(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 201);
+    expect(mockRes.getStatusCode()).toBe(201);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.success, true);
-    assert.strictEqual(body.message, 'Profile created with success.');
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Profile created with success.');
   });
 
   it('create should forward error when body is invalid', async () => {
@@ -207,7 +205,7 @@ describe('AdopterProfileController', () => {
       forwardedError = err;
     });
 
-    assert.ok(forwardedError);
+    expect(forwardedError).toBeDefined();
   });
 
   it('update should return 200 with updated profile DTO', async () => {
@@ -225,9 +223,9 @@ describe('AdopterProfileController', () => {
 
     await controller.update(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.message, 'Profile updated with success.');
+    expect(body.message).toBe('Profile updated with success.');
   });
 
   it('updateByUserId should return 200 with updated profile DTO', async () => {
@@ -245,9 +243,9 @@ describe('AdopterProfileController', () => {
 
     await controller.updateByUserId(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.message, 'Profile updated with success.');
+    expect(body.message).toBe('Profile updated with success.');
   });
 
   it('upsert should return 200 with saved profile DTO', async () => {
@@ -265,9 +263,9 @@ describe('AdopterProfileController', () => {
 
     await controller.upsert(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.message, 'Profile saved with success.');
+    expect(body.message).toBe('Profile saved with success.');
   });
 
   it('delete should return 200 with deleted profile DTO', async () => {
@@ -284,9 +282,9 @@ describe('AdopterProfileController', () => {
 
     await controller.delete(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.message, 'Profile deleted with success.');
+    expect(body.message).toBe('Profile deleted with success.');
   });
 
   it('deleteByUserId should return 200 with deleted profile DTO', async () => {
@@ -303,8 +301,8 @@ describe('AdopterProfileController', () => {
 
     await controller.deleteByUserId(req, mockRes.res, () => {});
 
-    assert.strictEqual(mockRes.getStatusCode(), 200);
+    expect(mockRes.getStatusCode()).toBe(200);
     const body = mockRes.getBody<SharedAdopterProfile>();
-    assert.strictEqual(body.message, 'Profile deleted with success.');
+    expect(body.message).toBe('Profile deleted with success.');
   });
 });

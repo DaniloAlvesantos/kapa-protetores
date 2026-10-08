@@ -1,7 +1,6 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
-import { AdopterProfile } from '../models/AdopterProfile';
-import { UUID } from '../domains/UUID';
+import { AdopterProfile } from '../../src/models/AdopterProfile';
+import { UUID } from '../../src/domains/UUID';
+import { ValidationError } from '../../src/errors';
 
 describe('AdopterProfile Domain Entity', () => {
   it('should initialize and set properties correctly', () => {
@@ -23,19 +22,19 @@ describe('AdopterProfile Domain Entity', () => {
     profile.setCreatedAt('2026-10-07T12:00:00.000Z');
     profile.setUpdatedAt('2026-10-07T12:30:00.000Z');
 
-    assert.strictEqual(profile.getId().getValue(), id);
-    assert.strictEqual(profile.getUserId().getValue(), userId);
-    assert.strictEqual(profile.getPreferredSpecies(), 'dog');
-    assert.strictEqual(profile.getPreferredGender(), 'female');
-    assert.strictEqual(profile.getPreferredSize(), 3);
-    assert.strictEqual(profile.getPreferredEnergy(), 4);
-    assert.strictEqual(profile.getPreferredKidFriendly(), 5);
-    assert.strictEqual(profile.getPreferredNoise(), 2);
-    assert.strictEqual(profile.getPreferredAgeStage(), 2);
-    assert.strictEqual(profile.getLivesInApartment(), true);
-    assert.strictEqual(profile.getHasOtherPets(), false);
-    assert.strictEqual(profile.getCreatedAt(), '2026-10-07T12:00:00.000Z');
-    assert.strictEqual(profile.getUpdatedAt(), '2026-10-07T12:30:00.000Z');
+    expect(profile.getId().getValue()).toBe(id);
+    expect(profile.getUserId().getValue()).toBe(userId);
+    expect(profile.getPreferredSpecies()).toBe('dog');
+    expect(profile.getPreferredGender()).toBe('female');
+    expect(profile.getPreferredSize()).toBe(3);
+    expect(profile.getPreferredEnergy()).toBe(4);
+    expect(profile.getPreferredKidFriendly()).toBe(5);
+    expect(profile.getPreferredNoise()).toBe(2);
+    expect(profile.getPreferredAgeStage()).toBe(2);
+    expect(profile.getLivesInApartment()).toBe(true);
+    expect(profile.getHasOtherPets()).toBe(false);
+    expect(profile.getCreatedAt()).toBe('2026-10-07T12:00:00.000Z');
+    expect(profile.getUpdatedAt()).toBe('2026-10-07T12:30:00.000Z');
   });
 
   it('should accept UUID domain instances in setId and setUserId', () => {
@@ -46,8 +45,8 @@ describe('AdopterProfile Domain Entity', () => {
     profile.setId(idDomain);
     profile.setUserId(userDomain);
 
-    assert.strictEqual(profile.getId().getValue(), idDomain.getValue());
-    assert.strictEqual(profile.getUserId().getValue(), userDomain.getValue());
+    expect(profile.getId().getValue()).toBe(idDomain.getValue());
+    expect(profile.getUserId().getValue()).toBe(userDomain.getValue());
   });
 
   it('should not overwrite id or userId once set', () => {
@@ -57,31 +56,21 @@ describe('AdopterProfile Domain Entity', () => {
 
     profile.setId(id1);
     profile.setId(id2);
-    assert.strictEqual(profile.getId().getValue(), id1);
+    expect(profile.getId().getValue()).toBe(id1);
 
     profile.setUserId(id1);
     profile.setUserId(id2);
-    assert.strictEqual(profile.getUserId().getValue(), id1);
+    expect(profile.getUserId().getValue()).toBe(id1);
   });
 
   it('should reject negative numeric values with ValidationError', () => {
     const profile = new AdopterProfile();
 
-    assert.throws(() => profile.setPreferredSize(-1), {
-      name: 'ValidationError',
-    });
-    assert.throws(() => profile.setPreferredEnergy(-2), {
-      name: 'ValidationError',
-    });
-    assert.throws(() => profile.setPreferredKidFriendly(-1), {
-      name: 'ValidationError',
-    });
-    assert.throws(() => profile.setPreferredNoise(-5), {
-      name: 'ValidationError',
-    });
-    assert.throws(() => profile.setPreferredAgeStage(-1), {
-      name: 'ValidationError',
-    });
+    expect(() => profile.setPreferredSize(-1)).toThrow(ValidationError);
+    expect(() => profile.setPreferredEnergy(-2)).toThrow(ValidationError);
+    expect(() => profile.setPreferredKidFriendly(-1)).toThrow(ValidationError);
+    expect(() => profile.setPreferredNoise(-5)).toThrow(ValidationError);
+    expect(() => profile.setPreferredAgeStage(-1)).toThrow(ValidationError);
   });
 
   it('should allow null for optional preferences', () => {
@@ -96,15 +85,15 @@ describe('AdopterProfile Domain Entity', () => {
     profile.setLivesInApartment(null);
     profile.setHasOtherPets(null);
 
-    assert.strictEqual(profile.getPreferredSpecies(), null);
-    assert.strictEqual(profile.getPreferredGender(), null);
-    assert.strictEqual(profile.getPreferredSize(), null);
-    assert.strictEqual(profile.getPreferredEnergy(), null);
-    assert.strictEqual(profile.getPreferredKidFriendly(), null);
-    assert.strictEqual(profile.getPreferredNoise(), null);
-    assert.strictEqual(profile.getPreferredAgeStage(), null);
-    assert.strictEqual(profile.getLivesInApartment(), null);
-    assert.strictEqual(profile.getHasOtherPets(), null);
+    expect(profile.getPreferredSpecies()).toBeNull();
+    expect(profile.getPreferredGender()).toBeNull();
+    expect(profile.getPreferredSize()).toBeNull();
+    expect(profile.getPreferredEnergy()).toBeNull();
+    expect(profile.getPreferredKidFriendly()).toBeNull();
+    expect(profile.getPreferredNoise()).toBeNull();
+    expect(profile.getPreferredAgeStage()).toBeNull();
+    expect(profile.getLivesInApartment()).toBeNull();
+    expect(profile.getHasOtherPets()).toBeNull();
   });
 
   it('should produce correct DTO and JSON output', () => {
@@ -124,7 +113,7 @@ describe('AdopterProfile Domain Entity', () => {
     profile.setUpdatedAt('2026-10-07T10:05:00.000Z');
 
     const dto = profile.toDTO();
-    assert.deepStrictEqual(dto, {
+    expect(dto).toEqual({
       id: '123e4567-e89b-12d3-a456-426614174000',
       userId: '987fcdeb-51a2-43f7-9abc-def012345678',
       preferredSpecies: 'cat',
@@ -140,6 +129,6 @@ describe('AdopterProfile Domain Entity', () => {
       updatedAt: '2026-10-07T10:05:00.000Z',
     });
 
-    assert.deepStrictEqual(profile.toJSON(), dto);
+    expect(profile.toJSON()).toEqual(dto);
   });
 });

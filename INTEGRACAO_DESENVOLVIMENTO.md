@@ -596,3 +596,45 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     * `POST /api/adopter-profiles`: Criação explícita de perfil.
     * `GET /api/adopter-profiles/:id` e `PATCH /api/adopter-profiles/:id`: Operações por ID do perfil.
     * `GET /api/adopter-profiles/user/:id`, `PUT /api/adopter-profiles/user/:id`, `PATCH /api/adopter-profiles/user/:id`, `DELETE /api/adopter-profiles/user/:id`: Operações por ID do usuário (administração).
+
+---
+
+### 15. Migração e Reorganização dos Testes do Backend (`apps/server`)
+
+* **Migração de `node:test` para Jest**:
+  * Configurado **Jest** com **`ts-jest`** e `@types/jest` no `apps/server`.
+  * Criação de [`jest.config.ts`](apps/server/jest.config.ts) apontando para a raiz `test/` e combinando arquivos `**/*.spec.ts`.
+  * Criação de [`tsconfig.test.json`](apps/server/tsconfig.test.json) para compilação estrita dos testes sem poluir o diretório de build de produção (`dist/`).
+  * Scripts atualizados no `package.json`: `test` (`jest`), `test:watch` (`jest --watch`), `test:cov` (`jest --coverage`).
+* **Estrutura por Camadas (`apps/server/test/`)**:
+  * **`test/controllers/`**:
+    * `AdopterProfileController.spec.ts`: Testes unitários de todos os endpoints do controlador de perfis de adotantes.
+    * `AuthController.spec.ts`: Validação de login social com Google via ID Token.
+    * `UserController.spec.ts`: Cobertura de registro, login, sanitização de senhas, contagens, edição de perfil e controle de papéis.
+  * **`test/domains/`**:
+    * `Url.spec.ts`: Validações de integridade de Value Objects de URL e preservação de casing/parâmetros.
+  * **`test/integration/`**:
+    * `animalManagement.spec.ts`: Testes integrados de ponta a ponta para gestão de animais, permissões por papel, visibilidade pública vs. privada e paginação.
+  * **`test/middlewares/`**:
+    * `authTokenHandler.spec.ts`: Verificação do middleware de autenticação, cabeçalho `Authorization` e validação de tokens JWT.
+  * **`test/models/`**:
+    * `AdopterProfile.spec.ts`: Validação e invariantes da entidade de domínio `AdopterProfile`.
+    * `User.spec.ts`: Validação de username, regras por papel, avatars e serialização segura sem hashes.
+  * **`test/repositories/`**:
+    * `UserRepository.spec.ts`: Mapeamento de relações, contagens e tratamento seguro de coordenadas nulas.
+  * **`test/routes/`**:
+    * `AdopterProfileRouter.spec.ts`: Verificação de registro e métodos HTTP de rotas de perfil de adotante.
+    * `UserRouter.spec.ts`: Verificação de métodos e endpoints públicos, administrativos e do usuário autenticado.
+    * `appCors.spec.ts`: Testes do servidor HTTP para origens permitidas e rejeição de requisições de origens maliciosas.
+  * **`test/security/`**:
+    * `Jwt.spec.ts`: Testes da utilidade de geração e decodificação de tokens JWT.
+    * `JwtService.spec.ts`: Assinatura e verificação estrita de claims (`issuer`, `audience`, expiração).
+    * `PasswordHasher.spec.ts`: Hashing seguro de senhas com PBKDF2 e timing-safe comparison.
+    * `mergeAuth.spec.ts`: Compatibilidade retroativa entre senhas e tokens emitidos por diferentes fluxos.
+  * **`test/services/`**:
+    * `AdopterProfileService.spec.ts`: Regras de negócio, busca por preferências, upsert e exclusão.
+    * `AnimalPhotoService.spec.ts`: Detecção de magic bytes e validação de MIME types de imagens.
+    * `UserService.spec.ts`: Fluxos de perfil, atualização de senhas, contagem de relacionamentos e autenticação Google.
+  * **`test/validation/`**:
+    * `schemas.spec.ts`: Schemas Zod de criação de usuário, papéis, coordenadas, login e tokens Google.
+
