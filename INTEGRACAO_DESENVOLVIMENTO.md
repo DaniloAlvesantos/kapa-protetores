@@ -584,3 +584,15 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * **Índices de Performance em `tb_events`**:
     * Adicionado índice em `tb_events(animal_id)` (`tb_events_animalId_idx`).
     * Adicionado índice composto em `tb_events(user_id, type)` (`tb_events_userId_type_idx`) para aceleração de consultas e agregação de histórico/atividades por usuário e tipo.
+  * **Rotas da API (`/api/adopter-profiles`)**:
+    * `GET /api/adopter-profiles/count`: Contagem global de perfis de adotantes.
+    * `GET /api/adopter-profiles/all`: Listagem administrativa restrita (`admin:*`).
+    * `GET /api/adopter-profiles/me`: Consulta do perfil de preferências do adotante autenticado (`user:read:own`).
+    * `PUT /api/adopter-profiles/me`: Upsert (cria se ausente, atualiza se existente) das preferências do adotante (`user:update:own`).
+    * `PATCH /api/adopter-profiles/me`: Atualização parcial das preferências do adotante (`user:update:own`).
+    * `DELETE /api/adopter-profiles/me`: Exclusão das preferências do adotante (`user:delete:own`).
+    * `POST /api/adopter-profiles/preferences/search`: Filtragem composta de adotantes por critérios de preferências.
+    * `GET /api/adopter-profiles/preference`: Consulta rápida por chave e valor individual.
+    * `POST /api/adopter-profiles`: Criação explícita de perfil.
+    * `GET /api/adopter-profiles/:id` e `PATCH /api/adopter-profiles/:id`: Operações por ID do perfil.
+    * `GET /api/adopter-profiles/user/:id`, `PUT /api/adopter-profiles/user/:id`, `PATCH /api/adopter-profiles/user/:id`, `DELETE /api/adopter-profiles/user/:id`: Operações por ID do usuário (administração).

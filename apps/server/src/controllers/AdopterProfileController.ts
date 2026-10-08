@@ -111,6 +111,110 @@ export class AdopterProfileController {
     }
   };
 
+  public getMe = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user?.sub) {
+        throw new BadRequestError('User authentication required.');
+      }
+
+      const adopterProfile = await this.profileService.getByUserId(
+        req.user.sub,
+      );
+      const response = this.mapToApiResponse<SharedAdopterProfile>({
+        data: adopterProfile.toDTO(),
+      });
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public updateMe = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user?.sub) {
+        throw new BadRequestError('User authentication required.');
+      }
+
+      const body = adoptionProfileUpdate.safeParse(req.body);
+
+      if (!body.success) {
+        throw new BadRequestError('Invalid update data.', body.error.format());
+      }
+
+      const updated = await this.profileService.updateByUserId(
+        req.user.sub,
+        body.data,
+      );
+      const response = this.mapToApiResponse<SharedAdopterProfile>({
+        data: updated.toDTO(),
+        message: 'Profile updated with success.',
+      });
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public upsertMe = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user?.sub) {
+        throw new BadRequestError('User authentication required.');
+      }
+
+      const body = adoptionProfileUpdate.safeParse(req.body);
+
+      if (!body.success) {
+        throw new BadRequestError('Invalid update data.', body.error.format());
+      }
+
+      const saved = await this.profileService.upsert(req.user.sub, body.data);
+      const response = this.mapToApiResponse<SharedAdopterProfile>({
+        data: saved.toDTO(),
+        message: 'Profile saved with success.',
+      });
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public deleteMe = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user?.sub) {
+        throw new BadRequestError('User authentication required.');
+      }
+
+      const deleted = await this.profileService.deleteByUserId(req.user.sub);
+      const response = this.mapToApiResponse<SharedAdopterProfile>({
+        data: deleted.toDTO(),
+        message: 'Profile deleted with success.',
+      });
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   public getByPreferences = async (
     req: Request,
     res: Response,
