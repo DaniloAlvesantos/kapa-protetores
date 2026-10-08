@@ -8,6 +8,10 @@ const config: Config = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   clearMocks: true,
   restoreMocks: true,
+  moduleNameMapper: {
+    '^@kapa/shared$': '<rootDir>/../../packages/shared/src',
+    '^@kapa/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
+  },
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
