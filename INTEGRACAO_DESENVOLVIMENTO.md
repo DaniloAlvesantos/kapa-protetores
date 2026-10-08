@@ -638,3 +638,28 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * **`test/validation/`**:
     * `schemas.spec.ts`: Schemas Zod de criação de usuário, papéis, coordenadas, login e tokens Google.
 
+---
+
+### 16. Configuração de Testes com Jest + Expo em React Native (`apps/mobile-web`)
+
+* **Infraestrutura de Testes com `jest-expo`**:
+  * Configurado **Jest** com o preset oficial **`jest-expo`** compatível com Expo SDK 57 e React Native 0.86.
+  * Instalados como devDependencies: `jest-expo`, `jest`, `@types/jest`, `@react-native/jest-preset@0.86.3`, `@testing-library/react-native` e `test-renderer` (renderizador oficial para React 19).
+  * Arquivo [`apps/mobile-web/jest.config.js`](apps/mobile-web/jest.config.js) configurado com preset `jest-expo`, mapeamento de path alias `^@/(.*)$` e de `expo-modules-core`.
+  * Arquivo [`apps/mobile-web/jest.setup.ts`](apps/mobile-web/jest.setup.ts) para setups e mocks globais do ambiente React Native.
+  * Inclusão do tipo `"jest"` em [`apps/mobile-web/tsconfig.json`](apps/mobile-web/tsconfig.json).
+  * Scripts no `package.json` de `apps/mobile-web`: `"test": "jest"`, `"test:watch": "jest --watch"`.
+  * Scripts unificados no `package.json` da raiz:
+    * `"test"`: executa os testes do servidor e da aplicação mobile/web em cadeia (`npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web`).
+    * `"test:mobile"`: executa os testes do mobile/web isoladamente.
+    * `"test:server"`: executa os testes do servidor isoladamente.
+* **Organização das Suítes em `apps/mobile-web/test/`**:
+  * **`test/components/`**:
+    * `PrimaryButton.spec.tsx`: Testes de renderização, acessibilidade, eventos de clique e estado de carregamento do componente de botão utilizando `@testing-library/react-native` (com suporte assíncrono para React 19).
+    * `searchAdoptModel.spec.ts`: Validação de esquema e filtros de busca por nome, raça, porte, espécie e sexo.
+  * **`test/screens/`**:
+    * `animalManagementModel.spec.ts`: Validação do modelo do editor de animais, formatação de pesos decimais brasileiros e paginação.
+  * **`test/services/`**:
+    * `apiBaseUrl.spec.ts`: Testes unitários de normalização de URLs de API, sanitização de barras e validação de HTTPS em produção.
+
+
