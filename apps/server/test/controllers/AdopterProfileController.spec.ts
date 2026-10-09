@@ -174,14 +174,18 @@ describe('AdopterProfileController', () => {
 
   it('create should return 201 with created profile DTO', async () => {
     const profile = createSampleProfile();
+    let passedInput: unknown;
     const mockService = {
-      create: async () => profile,
+      create: async (input: unknown) => {
+        passedInput = input;
+        return profile;
+      },
     } as unknown as AdopterProfileService;
 
     const controller = new AdopterProfileController(mockService);
     const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
       body: {
-        userId: '123e4567-e89b-12d3-a456-426614174000',
         preferredSpecies: 'dog',
         preferredSize: 3,
       },
@@ -194,11 +198,33 @@ describe('AdopterProfileController', () => {
     const body = mockRes.getBody<SharedAdopterProfile>();
     expect(body.success).toBe(true);
     expect(body.message).toBe('Profile created with success.');
+    expect(passedInput).toEqual({
+      preferredSpecies: 'dog',
+      preferredSize: 3,
+      userId: '123e4567-e89b-12d3-a456-426614174000',
+    });
   });
 
   it('create should forward error when body is invalid', async () => {
     const controller = new AdopterProfileController({} as AdopterProfileService);
-    const req = { body: { userId: 'not-a-uuid' } } as unknown as Request;
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+      body: { preferredSize: 99 },
+    } as unknown as Request;
+    let forwardedError: unknown;
+
+    await controller.create(req, {} as Response, (err) => {
+      forwardedError = err;
+    });
+
+    expect(forwardedError).toBeDefined();
+  });
+
+  it('create should forward error when user authentication is missing', async () => {
+    const controller = new AdopterProfileController({} as AdopterProfileService);
+    const req = {
+      body: { preferredSpecies: 'dog' },
+    } as unknown as Request;
     let forwardedError: unknown;
 
     await controller.create(req, {} as Response, (err) => {

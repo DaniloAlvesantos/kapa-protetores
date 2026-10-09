@@ -283,6 +283,12 @@ export class AdopterProfileController {
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const userId = req.user?.sub;
+
+      if (!userId) {
+        throw new BadRequestError('User authentication required.');
+      }
+
       const parsed = adoptionProfileCreate.safeParse(req.body);
 
       if (!parsed.success) {
@@ -292,7 +298,10 @@ export class AdopterProfileController {
         );
       }
 
-      const profile = await this.profileService.create(parsed.data);
+      const profile = await this.profileService.create({
+        ...parsed.data,
+        userId,
+      });
       const response = this.mapToApiResponse<SharedAdopterProfile>({
         data: profile.toDTO(),
         message: 'Profile created with success.',

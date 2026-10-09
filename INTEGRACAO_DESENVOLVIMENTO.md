@@ -735,4 +735,52 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Tipagem Estrita nos Testes de Integração**:
   * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
 
+---
 
+### 20. Componente `PrimaryCheckBox` e Acessibilidade (`apps/mobile-web`)
+
+* **Aprimoramentos de Arquitetura e UX**:
+  * Implementado em [`apps/mobile-web/src/components/checkboxs/primary/index.tsx`](apps/mobile-web/src/components/checkboxs/primary/index.tsx).
+  * **Modos Controlado e Não Controlado**: suporte completo a `checked`/`value` (controlado) e `defaultChecked`/`initialState` (não controlado).
+  * **Callbacks Resilientes**: suporte a `onChange`, `onValueChange` e retrocompatibilidade com `onClick`, corrigindo fechamento estático (*stale closure*) e erro de digitação de classes (`outline-none`).
+  * **Acessibilidade e Alvos de Toque**: conformidade com alvos mínimos de toque (44-48px via `hitSlop={8}` e `min-h-[44px]`), atributos semânticos (`accessibilityRole="checkbox"`, `accessibilityState={{ checked, disabled }}` e suporte a estado `indeterminate: 'mixed'`).
+  * **Design System**: suporte a variantes de tamanho (`sm`, `md`, `lg`), rótulos tipográficos com `Plus Jakarta Sans`, mensagens de apoio/descrição e estados visuais de erro (`border-danger`), desabilitado (`opacity-50`, `cursor-not-allowed`) e preenchimento primário com `CheckIcon` e `MinusIcon`.
+* **Suíte de Testes Automatizados**:
+  * Implementada em [`apps/mobile-web/test/components/PrimaryCheckBox.spec.tsx`](apps/mobile-web/test/components/PrimaryCheckBox.spec.tsx) utilizando `@testing-library/react-native`, validando renderização, alternância de estado, modo controlado, bloqueio quando desabilitado, estado indeterminado e exibição de erros.
+
+---
+
+### 21. Formulário Multi-etapas de Perfil de Adotante (`AdopterProfileForms`)
+
+* **Arquitetura e Fluxo do Questionário**:
+  * Componente implementado em [`apps/mobile-web/src/components/forms/adopterProfile/index.tsx`](apps/mobile-web/src/components/forms/adopterProfile/index.tsx).
+  * **Configuração Centralizada**: 9 etapas configuradas em [`model.ts`](apps/mobile-web/src/components/forms/adopterProfile/model.ts) cobrindo espécie, sexo, porte, faixa etária, energia, convivência com crianças, ruído, moradia em apartamento e outros pets.
+  * **Variantes de Componente**:
+    * `card`: seleção visual com ícones dedicados (ex.: espécies com `DogIcon`, `CatIcon`, `BirdIcon`).
+    * `checkbox`: linhas interativas acessíveis integradas com `PrimaryCheckBox`.
+    * `chip`: chips arredondados para seleção rápida utilizando o componente reutilizável `PrimaryChip` (`@/components/chips/primaryChip`).
+  * **Progresso e Navegação**:
+    * Indicador numérico de passo ("Passo X de Y") e barra de progresso visual percentual.
+    * Botão "Voltar" disponível a partir da etapa 2.
+    * Botão "Avançar" / "Concluir Perfil" integrado com validação Zod via `react-hook-form` e `@hookform/resolvers/zod`.
+  * **Acessibilidade e Usabilidade**:
+    * Alvos de toque superiores a 48px, papéis semânticos `radio` e `checkbox`.
+    * Mensagens de erro com validação em tempo real.
+* **Suíte de Testes Automatizados**:
+  * Implementada em [`apps/mobile-web/test/components/AdopterProfileForms.spec.tsx`](apps/mobile-web/test/components/AdopterProfileForms.spec.tsx), cobrindo renderização, seleção de opções, submissão de dados, navegação retroativa e estado de conclusão.
+
+---
+
+### 22. Segurança e Remoção de `userId` nas Requisições de Perfil de Adotante (`AdopterProfile`)
+
+* **Mitigação de IDOR / BOLA (Insecure Direct Object Reference)**:
+  * Em conformidade com a seção 8 de [`AGENTS.md`](AGENTS.md), identidades fornecidas pelo cliente não são confiadas.
+  * O schema [`apps/server/src/schemas/adoptionProfile.schema.ts`](apps/server/src/schemas/adoptionProfile.schema.ts) (`adoptionProfileCreate`) foi atualizado para conter exclusivamente os campos de preferências (`adoptionProfilePreferenceFields`), removendo o campo `userId` do payload aceito da requisição.
+* **Extração Segura de Identidade via Token JWT**:
+  * O controlador [`apps/server/src/controllers/AdopterProfileController.ts`](apps/server/src/controllers/AdopterProfileController.ts) no método `create` extrai o `userId` autenticado exclusivamente de `req.user.sub` (injetado pelo middleware `authTokenHandler`).
+  * Caso o usuário não esteja autenticado, rejeita a requisição com `BadRequestError('User authentication required.')`.
+  * O serviço subjacente (`profileService.create`) recebe `{ ...parsed.data, userId }`, associando a criação do registro ao usuário autenticado de forma confiável e inviolável.
+* **Contratos Compartilhados e Tipagem Estrita (`@kapa/shared`)**:
+  * Em [`packages/shared/src/types/user.ts`](packages/shared/src/types/user.ts), foram exportados os tipos `CreateAdopterProfileBody` e `AdopterProfileRequestBody` definidos como `Omit<CreateAdopterProfileInput, 'userId'>`, garantindo conformidade entre front-end e back-end sem expor `userId` nos formulários.
+* **Frontend Mobile / Web**:
+  * O formulário [`apps/mobile-web/src/components/forms/adopterProfile/model.ts`](apps/mobile-web/src/components/forms/adopterProfile/model.ts) e o hook [`apps/mobile-web/src/hooks/useAdopterProfile.ts`](apps/mobile-web/src/hooks/useAdopterProfile.ts) enviam somente os dados de preferência validados para o endpoint autenticado `POST /api/adopter-profiles`.

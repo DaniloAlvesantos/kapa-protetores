@@ -48,8 +48,6 @@ export const adoptionProfileSinglePreference = z.object({
     .nullable(),
 });
 
-export const adoptionProfileCreate = adoptionProfilePreferenceFields.extend({
-  userId: z.string().uuid(),
-});
+export const adoptionProfileCreate = adoptionProfilePreferenceFields;
 
 export const adoptionProfileUpdate = adoptionProfilePreferenceFields;

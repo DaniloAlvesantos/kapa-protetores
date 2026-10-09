@@ -11,10 +11,8 @@ export class AdopterProfileRouter {
   }
 
   private initRoutes(): void {
-    // 1. Estatísticas / contagem geral
     this.router.get('/count', this.controller.countAll);
 
-    // 2. Listagem global (administração)
     this.router.get(
       '/all',
       authTokenHandler,
@@ -22,7 +20,6 @@ export class AdopterProfileRouter {
       this.controller.getAll,
     );
 
-    // 3. Rotas do adotante autenticado (/me)
     this.router.get(
       '/me',
       authTokenHandler,
@@ -48,7 +45,6 @@ export class AdopterProfileRouter {
       this.controller.deleteMe,
     );
 
-    // 4. Busca por preferências
     this.router.post(
       '/preferences/search',
       authTokenHandler,
@@ -60,14 +56,12 @@ export class AdopterProfileRouter {
       this.controller.getByPreference,
     );
 
-    // 5. Criação de perfil
     this.router.post(
       '/',
       authTokenHandler,
       this.controller.create,
     );
 
-    // 6. Rotas por User ID (/user/:id) - administração
     this.router.get(
       '/user/:id',
       authTokenHandler,
@@ -93,7 +87,6 @@ export class AdopterProfileRouter {
       this.controller.deleteByUserId,
     );
 
-    // 7. Rotas por Profile ID (/:id)
     this.router.get(
       '/:id',
       authTokenHandler,
