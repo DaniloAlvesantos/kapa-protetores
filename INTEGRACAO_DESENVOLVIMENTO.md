@@ -725,3 +725,14 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Otimização de Performance do Testcontainers**:
   * Adicionadas flags de PostgreSQL em memória (`fsync=off`, `synchronous_commit=off`, `full_page_writes=off`) e `npx --no-install prisma migrate deploy` no helper [`postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts).
 
+---
+
+### 19. Pipeline de CI/CD e Qualidade (`.github/workflows/quality.yml`)
+
+* **Geração de Prisma Client e Build do Pacote Compartilhado**:
+  * Nos jobs de `lint` e `tests`, as etapas de `npm run prisma:generate --workspace=@kapa/server` e `npm run build:shared` são executadas imediatamente após `npm ci`.
+  * Isso garante que os tipos gerados pelo Prisma Client (`@prisma/client`) e a compilação do pacote `@kapa/shared` estejam prontos antes das etapas de análise estática (`npm run lint`), checagem de tipos estrita (`npm run type-check`) e execução de testes automatizados (`npm test`).
+* **Tipagem Estrita nos Testes de Integração**:
+  * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
+
+

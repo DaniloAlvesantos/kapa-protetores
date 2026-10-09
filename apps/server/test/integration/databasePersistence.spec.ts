@@ -38,7 +38,7 @@ describe('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts 
         ORDER BY table_name
       `;
 
-      const tableNames = tables.map((t) => t.table_name);
+      const tableNames = tables.map((t: { table_name: string }) => t.table_name);
       expect(tableNames).toContain('tb_users');
       expect(tableNames).toContain('tb_adopter_profiles');
       expect(tableNames).toContain('tb_animals');
@@ -70,7 +70,7 @@ describe('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts 
       const indexes = await ctx.prisma.$queryRaw<Array<{ indexname: string }>>`
         SELECT indexname FROM pg_indexes WHERE schemaname = 'public'
       `;
-      const indexNames = indexes.map((i) => i.indexname);
+      const indexNames = indexes.map((i: { indexname: string }) => i.indexname);
 
       expect(indexNames).toContain('tb_adopter_profiles_user_id_key');
       expect(indexNames).toContain('tb_events_animalId_idx');
