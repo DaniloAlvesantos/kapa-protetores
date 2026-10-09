@@ -1,4 +1,4 @@
-import { setAccessToken } from '@/services/api';
+import { apiRequest, ApiError, setAccessToken } from '@/services/api';
 import { kapaService, setOnUnauthorizedCallback } from '@/services/kapaService';
 import { genericStorage } from '@/storage/genericStorage';
 import { User } from '@kapa/shared';
@@ -21,10 +21,14 @@ export interface SignUpData {
   longitude?: number | null;
 }
 
-interface AuthContextProps {
+export interface AuthContextProps {
   isLogged: boolean;
   isReady: boolean;
   user: User | null;
+  hasAdopterProfile: boolean | null;
+  isCheckingProfile: boolean;
+  checkAdopterProfile: () => Promise<boolean>;
+  setHasAdopterProfile: (value: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => void;
@@ -33,6 +37,7 @@ interface AuthContextProps {
 
 const AUTH_STORAGE_TOKEN_KEY = '@kapa:auth-token';
 const AUTH_STORAGE_DATA_KEY = '@kapa:user-data';
+const AUTH_STORAGE_PROFILE_KEY = '@kapa:has-adopter-profile';
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -65,6 +70,8 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const [isLogged, setIsLogged] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [hasAdopterProfile, setHasAdopterProfileState] = useState<boolean | null>(null);
+  const [isCheckingProfile, setIsCheckingProfile] = useState<boolean>(false);
 
   const storageState = async (token: string, data: User) => {
     try {
@@ -77,14 +84,47 @@ export function AuthProvider({ children }: AuthProviderProp) {
     }
   };
 
+  const setHasAdopterProfile = useCallback(async (value: boolean) => {
+    setHasAdopterProfileState(value);
+    await genericStorage.set<boolean>(AUTH_STORAGE_PROFILE_KEY, value);
+  }, []);
+
+  const checkAdopterProfile = useCallback(async (): Promise<boolean> => {
+    setIsCheckingProfile(true);
+    try {
+      await apiRequest('/adopter-profiles/me');
+      setHasAdopterProfileState(true);
+      await genericStorage.set<boolean>(AUTH_STORAGE_PROFILE_KEY, true);
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setHasAdopterProfileState(false);
+        await genericStorage.set<boolean>(AUTH_STORAGE_PROFILE_KEY, false);
+        return false;
+      }
+      return false;
+    } finally {
+      setIsCheckingProfile(false);
+    }
+  }, []);
+
   const establishSession = useCallback(
     async (token: string, userData: User) => {
       await storageState(token, userData);
       setUser(userData);
       setIsLogged(true);
+
+      if (userData.role === 'adopter') {
+        const hasProfile = await checkAdopterProfile();
+        if (!hasProfile) {
+          router.replace('/(protected)/adopter-profile');
+          return;
+        }
+      }
+
       router.replace('/(protected)/(tabs)');
     },
-    [],
+    [checkAdopterProfile],
   );
 
   const signIn = useCallback(
@@ -129,10 +169,12 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const signOut = useCallback(async () => {
     setIsLogged(false);
     setUser(null);
+    setHasAdopterProfileState(null);
     setAccessToken(undefined);
     delete kapaService.defaults.headers.common['Authorization'];
     await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
     await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
+    await genericStorage.remove(AUTH_STORAGE_PROFILE_KEY);
     router.replace('/signIn');
   }, []);
 
@@ -174,43 +216,62 @@ export function AuthProvider({ children }: AuthProviderProp) {
         const storedUser = await genericStorage.get<User>(
           AUTH_STORAGE_DATA_KEY,
         );
+        const storedProfileStatus = await genericStorage.get<boolean>(
+          AUTH_STORAGE_PROFILE_KEY,
+        );
 
         if (storedToken && storedUser) {
           if (isTokenExpired(storedToken)) {
             await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
             await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
+            await genericStorage.remove(AUTH_STORAGE_PROFILE_KEY);
             delete kapaService.defaults.headers.common['Authorization'];
             setAccessToken(undefined);
             setIsLogged(false);
             setUser(null);
+            setHasAdopterProfileState(null);
           } else {
             kapaService.defaults.headers.common['Authorization'] =
               `Bearer ${storedToken}`;
             setAccessToken(storedToken);
             setUser(storedUser);
             setIsLogged(true);
+
+            if (storedProfileStatus !== null && storedProfileStatus !== undefined) {
+              setHasAdopterProfileState(storedProfileStatus);
+            }
+
+            if (storedUser.role === 'adopter') {
+              void checkAdopterProfile();
+            }
           }
         } else {
           setIsLogged(false);
           setUser(null);
+          setHasAdopterProfileState(null);
         }
       } catch (err) {
         console.error('Error loading auth storage state:', err);
         setIsLogged(false);
         setUser(null);
+        setHasAdopterProfileState(null);
       } finally {
         setIsReady(true);
       }
     }
 
     loadStorageState();
-  }, []);
+  }, [checkAdopterProfile]);
 
   const contextValue = useMemo(
     () => ({
       isLogged,
       isReady,
       user,
+      hasAdopterProfile,
+      isCheckingProfile,
+      checkAdopterProfile,
+      setHasAdopterProfile,
       signIn,
       signUp,
       signOut,
@@ -220,6 +281,10 @@ export function AuthProvider({ children }: AuthProviderProp) {
       isLogged,
       isReady,
       user,
+      hasAdopterProfile,
+      isCheckingProfile,
+      checkAdopterProfile,
+      setHasAdopterProfile,
       signIn,
       signUp,
       signOut,

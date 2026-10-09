@@ -784,3 +784,25 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Em [`packages/shared/src/types/user.ts`](packages/shared/src/types/user.ts), foram exportados os tipos `CreateAdopterProfileBody` e `AdopterProfileRequestBody` definidos como `Omit<CreateAdopterProfileInput, 'userId'>`, garantindo conformidade entre front-end e back-end sem expor `userId` nos formulários.
 * **Frontend Mobile / Web**:
   * O formulário [`apps/mobile-web/src/components/forms/adopterProfile/model.ts`](apps/mobile-web/src/components/forms/adopterProfile/model.ts) e o hook [`apps/mobile-web/src/hooks/useAdopterProfile.ts`](apps/mobile-web/src/hooks/useAdopterProfile.ts) enviam somente os dados de preferência validados para o endpoint autenticado `POST /api/adopter-profiles`.
+
+---
+
+### 23. Obrigatoriedade de Preenchimento do `AdopterProfile` no Primeiro Login
+
+* **Regra de Negócio e Fluxo de Boas-Vindas**:
+  * Ao realizar o primeiro login ou cadastro (via credenciais locais ou Google OAuth), usuários adotantes (`role: 'adopter'`) são obrigados a preencher o formulário multi-etapas de perfil de preferências antes de acessar a navegação principal da aplicação (`/(protected)/(tabs)`).
+* **Guarda de Rotas e Verificação de Estado (`apps/mobile-web`)**:
+  * **Provedor de Autenticação (`AuthProvider`)**:
+    * Implementados no `AuthContext` os estados `hasAdopterProfile` (`boolean | null`) e `isCheckingProfile` (`boolean`), com persistência em chave `@kapa:has-adopter-profile` via `genericStorage`.
+    * A função `checkAdopterProfile` consulta `GET /api/adopter-profiles/me`: caso a resposta seja 404 (`NotFoundError`), define `hasAdopterProfile` como `false` e armazena o status.
+    * No fluxo de login (`establishSession`), adotantes sem perfil cadastrado são imediatamente redirecionados para `/(protected)/adopter-profile`.
+  * **Proteção das Abas Principais (`(protected)/(tabs)/_layout.tsx`)**:
+    * O layout das abas valida se o usuário autenticado é adotante e não possui perfil preenchido (`hasAdopterProfile === false`), emitindo um `<Redirect href="/(protected)/adopter-profile" />` para impedir o desvio do fluxo obrigatório.
+  * **Rota Dedicada de Perfil de Adotante (`app/(protected)/adopter-profile.tsx`)**:
+    * Adicionada a rota protegida associada a [`AdopterProfileScreen`](apps/mobile-web/src/screens/adopterProfile/index.tsx), registrada no `ProtectedLayout`.
+    * Inclui cabeçalho acessível com opção de logout seguro, exibição de mensagens de erro caso a chamada de mutação falhe, e transição para a tela de conclusão com desbloqueio do acesso às abas (`setHasAdopterProfile(true)`).
+* **Suíte de Testes Automatizados**:
+  * Implementados testes em [`apps/mobile-web/test/contexts/AuthProvider.spec.tsx`](apps/mobile-web/test/contexts/AuthProvider.spec.tsx) cobrindo redirecionamento condicional para o formulário no primeiro login (404) e para as abas nos logins subsequentes (200).
+  * Implementados testes em [`apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx`](apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx) cobrindo renderização e fluxo de saída.
+  * Adicionados testes unitários para o endpoint `getMe` em [`apps/server/test/controllers/AdopterProfileController.spec.ts`](apps/server/test/controllers/AdopterProfileController.spec.ts).
+

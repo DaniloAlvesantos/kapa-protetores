@@ -6,6 +6,7 @@ describe('AdopterProfileForms', () => {
   it('renders current step title, description, and progress indicator', async () => {
     await render(
       <AdopterProfileForms
+        onNext={() => null}
         currentField={0}
         onSubmit={jest.fn()}
       />,
@@ -20,13 +21,14 @@ describe('AdopterProfileForms', () => {
     expect(screen.getByText('Passo 1 de 9')).toBeTruthy();
   });
 
-  it('allows selecting an option and submitting current step', async () => {
-    const onSubmitMock = jest.fn();
+  it('allows selecting an option and advancing to next step', async () => {
+    const onNextMock = jest.fn();
 
     await render(
       <AdopterProfileForms
+        onNext={onNextMock}
         currentField={0}
-        onSubmit={onSubmitMock}
+        onSubmit={jest.fn()}
       />,
     );
 
@@ -36,12 +38,7 @@ describe('AdopterProfileForms', () => {
     const nextButton = screen.getByText('Avançar');
     await fireEvent.press(nextButton);
 
-    expect(onSubmitMock).toHaveBeenCalledTimes(1);
-    expect(onSubmitMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        preferredSpecies: 'dog',
-      }),
-    );
+    expect(onNextMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders back button when currentField > 0 and onBack is provided', async () => {
@@ -49,6 +46,7 @@ describe('AdopterProfileForms', () => {
 
     await render(
       <AdopterProfileForms
+        onNext={() => null}
         currentField={1}
         onSubmit={jest.fn()}
         onBack={onBackMock}
@@ -63,12 +61,13 @@ describe('AdopterProfileForms', () => {
   });
 
   it('renders chips with PrimaryChip and allows selection on chip steps', async () => {
-    const onSubmitMock = jest.fn();
+    const onNextMock = jest.fn();
 
     await render(
       <AdopterProfileForms
+        onNext={onNextMock}
         currentField={1}
-        onSubmit={onSubmitMock}
+        onSubmit={jest.fn()}
       />,
     );
 
@@ -79,8 +78,38 @@ describe('AdopterProfileForms', () => {
     const nextButton = screen.getByText('Avançar');
     await fireEvent.press(nextButton);
 
+    expect(onNextMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits completed form on the last step', async () => {
+    const onSubmitMock = jest.fn();
+
+    await render(
+      <AdopterProfileForms
+        onNext={() => null}
+        currentField={8}
+        onSubmit={onSubmitMock}
+        initialValues={{
+          preferredSpecies: 'dog',
+          preferredGender: 'female',
+          preferredSize: 2,
+          preferredAgeStage: 1,
+          preferredEnergy: 2,
+          preferredKidFriendly: 2,
+          preferredNoise: 2,
+          livesInApartment: true,
+          hasOtherPets: false,
+        }}
+      />,
+    );
+
+    const finishButton = screen.getByText('Concluir Perfil');
+    await fireEvent.press(finishButton);
+
+    expect(onSubmitMock).toHaveBeenCalledTimes(1);
     expect(onSubmitMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        preferredSpecies: 'dog',
         preferredGender: 'female',
       }),
     );
@@ -89,6 +118,7 @@ describe('AdopterProfileForms', () => {
   it('renders conclusion text when step index is beyond total config steps', async () => {
     await render(
       <AdopterProfileForms
+        onNext={() => null}
         currentField={99}
         onSubmit={jest.fn()}
       />,

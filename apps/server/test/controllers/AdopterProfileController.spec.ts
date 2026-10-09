@@ -124,6 +124,42 @@ describe('AdopterProfileController', () => {
     expect(body.data.userId).toBe('123e4567-e89b-12d3-a456-426614174000');
   });
 
+  it('getMe should return 200 with authenticated user profile DTO', async () => {
+    const profile = createSampleProfile();
+    let searchedUserId: string | undefined;
+    const mockService = {
+      getByUserId: async (userId: string) => {
+        searchedUserId = userId;
+        return profile;
+      },
+    } as unknown as AdopterProfileService;
+
+    const controller = new AdopterProfileController(mockService);
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+    const mockRes = createMockResponse();
+
+    await controller.getMe(req, mockRes.res, () => {});
+
+    expect(mockRes.getStatusCode()).toBe(200);
+    const body = mockRes.getBody<SharedAdopterProfile>();
+    expect(body.data.userId).toBe('123e4567-e89b-12d3-a456-426614174000');
+    expect(searchedUserId).toBe('123e4567-e89b-12d3-a456-426614174000');
+  });
+
+  it('getMe should forward error when user authentication is missing', async () => {
+    const controller = new AdopterProfileController({} as AdopterProfileService);
+    const req = {} as Request;
+    let forwardedError: unknown;
+
+    await controller.getMe(req, {} as Response, (err) => {
+      forwardedError = err;
+    });
+
+    expect(forwardedError).toBeDefined();
+  });
+
   it('getByPreferences should return 200 with filtered profiles', async () => {
     const profile = createSampleProfile();
     const mockService = {

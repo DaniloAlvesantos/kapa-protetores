@@ -22,6 +22,7 @@ export default function ProtectedLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="manage-activities" />
+      <Stack.Screen name="adopter-profile" />
     </Stack>
   );
 }
