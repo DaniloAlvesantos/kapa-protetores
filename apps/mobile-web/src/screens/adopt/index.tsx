@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,17 +9,16 @@ import {
 } from 'react-native';
 import { PawPrintIcon } from 'phosphor-react-native';
 import { isAxiosError } from 'axios';
-import type { Animal, ApiResponse } from '@kapa/shared';
+import type { Animal } from '@kapa/shared';
 import { palette } from '@/theme';
 import {
   SearchAdoptForm,
-  matchesSearchAdoptFilters,
   defaultSearchAdoptFilters,
+  useSearchAdopt,
   type SearchAdoptFilters,
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
 import { PrimaryButton } from '@/components/buttons/primary';
-import { kapaService } from '@/services/kapaService';
 
 const DEFAULT_PET_PHOTO =
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
@@ -51,92 +50,34 @@ function formatPetCharacteristics(animal: Animal): string[] {
 }
 
 export function AdoptScreen() {
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<SearchAdoptFilters>(
     defaultSearchAdoptFilters,
   );
   const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
 
-  const fetchAnimals = useCallback(async () => {
-    const response = await kapaService.get<
-      ApiResponse<Animal[]> & { count?: number }
-    >('/animals');
+  const {
+    filteredAnimals,
+    animals: allAnimals,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  } = useSearchAdopt(filters);
 
-    if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data;
+  const errorMessage = useMemo(() => {
+    if (!error) return null;
+    if (isAxiosError<{ message?: string; error?: string }>(error)) {
+      return (
+        error.response?.data?.message ??
+        error.response?.data?.error ??
+        error.message
+      );
     }
-    return [];
-  }, []);
-
-  useEffect(() => {
-    let isActive = true;
-
-    void fetchAnimals()
-      .then((data) => {
-        if (isActive) {
-          setAnimals(data);
-          setError(null);
-        }
-      })
-      .catch((err: unknown) => {
-        if (isActive) {
-          const message =
-            isAxiosError<{ message?: string; error?: string }>(err) &&
-            (err.response?.data?.message || err.response?.data?.error)
-              ? (err.response.data.message ?? err.response.data.error)
-              : 'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.';
-          setError(message ?? 'Erro desconhecido ao carregar os animais.');
-        }
-      })
-      .finally(() => {
-        if (isActive) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [fetchAnimals]);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const data = await fetchAnimals();
-      setAnimals(data);
-      setError(null);
-    } catch (err: unknown) {
-      const message =
-        isAxiosError<{ message?: string; error?: string }>(err) &&
-        (err.response?.data?.message || err.response?.data?.error)
-          ? (err.response.data.message ?? err.response.data.error)
-          : 'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.';
-      setError(message ?? 'Erro desconhecido ao carregar os animais.');
-    } finally {
-      setRefreshing(false);
-    }
-  }, [fetchAnimals]);
-
-  const handleRetry = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchAnimals();
-      setAnimals(data);
-    } catch (err: unknown) {
-      const message =
-        isAxiosError<{ message?: string; error?: string }>(err) &&
-        (err.response?.data?.message || err.response?.data?.error)
-          ? (err.response.data.message ?? err.response.data.error)
-          : 'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.';
-      setError(message ?? 'Erro desconhecido ao carregar os animais.');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchAnimals]);
+    return (
+      error.message ||
+      'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.'
+    );
+  }, [error]);
 
   const handleToggleFavorite = useCallback((id: string) => {
     setFavoritedIds((prev) => {
@@ -154,12 +95,6 @@ export function AdoptScreen() {
     setFilters(newFilters);
   }, []);
 
-  const filteredAnimals = useMemo(() => {
-    return animals.filter((animal) =>
-      matchesSearchAdoptFilters(animal, filters),
-    );
-  }, [animals, filters]);
-
   return (
     <ScrollView
       className="flex-1"
@@ -167,8 +102,8 @@ export function AdoptScreen() {
       contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 20 }}
       refreshControl={
         <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void handleRefresh()}
+          refreshing={isRefetching}
+          onRefresh={() => void refetch()}
           tintColor={palette.orange}
           colors={[palette.orange]}
         />
@@ -178,7 +113,7 @@ export function AdoptScreen() {
 
       <View className="flex-row items-center justify-between border-t border-line pt-4">
         <Text className="font-heading-bold text-lg text-ink">
-          {loading
+          {isLoading
             ? 'Buscando amigos...'
             : `${filteredAnimals.length} ${
                 filteredAnimals.length === 1
@@ -188,25 +123,25 @@ export function AdoptScreen() {
         </Text>
       </View>
 
-      {loading ? (
+      {isLoading ? (
         <View className="py-16 items-center justify-center gap-3">
           <ActivityIndicator size="large" color={palette.orange} />
           <Text className="font-body text-sm text-ink-muted">
             Carregando animais para adoção...
           </Text>
         </View>
-      ) : error ? (
+      ) : errorMessage ? (
         <View className="p-6 bg-white border border-danger-soft rounded-2xl items-center gap-3">
           <Text className="font-heading-bold text-base text-danger text-center">
             Erro ao carregar lista de pets
           </Text>
           <Text className="font-body text-sm text-ink-muted text-center max-w-sm">
-            {error}
+            {errorMessage}
           </Text>
           <View className="w-48 mt-2">
             <PrimaryButton
               title="Tentar novamente"
-              onPress={() => void handleRetry()}
+              onPress={() => void refetch()}
               size="sm"
             />
           </View>
@@ -215,16 +150,16 @@ export function AdoptScreen() {
         <View className="py-16 px-4 bg-white border border-line rounded-2xl items-center justify-center gap-3">
           <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
           <Text className="font-heading-bold text-base text-ink text-center">
-            {animals.length === 0
+            {allAnimals.length === 0
               ? 'Nenhum animal disponível no momento'
               : 'Nenhum animal encontrado'}
           </Text>
           <Text className="font-body text-sm text-ink-muted text-center max-w-xs">
-            {animals.length === 0
+            {allAnimals.length === 0
               ? 'Não há animais marcados para adoção no abrigo no momento. Volte em breve!'
               : 'Tente alterar os termos da busca ou limpar os filtros para ver mais bichinhos.'}
           </Text>
-          {animals.length > 0 && (
+          {allAnimals.length > 0 && (
             <Pressable
               onPress={() => setFilters(defaultSearchAdoptFilters)}
               accessibilityRole="button"
