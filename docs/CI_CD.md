@@ -30,7 +30,7 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | --- | --- |
 | `CI / ESLint` | Instalação reproduzível com `npm ci`, ESLint, geração do Prisma Client e type-check |
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
-| `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
+| `CI / Cobertura` | Testes da API e do frontend com LCOV consolidado, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
 | `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa nos PRs do próprio repositório e em pushes para `main`) |
@@ -43,7 +43,7 @@ O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-
 
 A auditoria deixou de ser um `npm audit` bruto (que falhava por vulnerabilidades sem correção na linha atual do Prisma/Expo). Agora `scripts/audit-gate.mjs` roda `npm audit --json` e **falha apenas em advisories high/critical que não estejam na allowlist** [`scripts/audit-allowlist.json`](../scripts/audit-allowlist.json). Assim, novas vulnerabilidades bloqueiam o CI, enquanto as aceitas ficam documentadas (com motivo). Ao corrigir uma dependência, remova o id correspondente da allowlist.
 
-O job `Segurança` também roda o **Trivy**, que tem o próprio ignore em [`.trivyignore`](../.trivyignore) (mesmos CVEs aceitos, já que o Trivy não lê a allowlist do npm). O **Semgrep** roda com `--error`; em PRs usa `--baseline-commit` e eventuais falsos positivos são suprimidos pontualmente com `# nosemgrep`.
+O job `Segurança` também roda o **Trivy**, que tem o próprio ignore em [`.trivyignore`](../.trivyignore) (mesmos CVEs aceitos, já que o Trivy não lê a allowlist do npm). Diretórios `node_modules` são excluídos da travessia: vulnerabilidades das dependências continuam sendo analisadas pelo `package-lock.json`, enquanto Dockerfiles e outras configurações internas de pacotes externos não são atribuídos ao projeto. O **Semgrep** roda com `--error`; em PRs usa `--baseline-commit` e eventuais falsos positivos são suprimidos pontualmente com `# nosemgrep`.
 
 ### Cobertura no Pull Request
 
@@ -54,7 +54,7 @@ Em PRs criados dentro do próprio repositório, o workflow publica um comentári
 - cobertura de statements, branches, functions e lines;
 - resultados agrupados em `mobile-web`, `server`, `shared` e total.
 
-O relatório completo `coverage/lcov.info` permanece disponível como artefato por sete dias. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
+O job gera relatórios LCOV para `server` e `mobile-web`, normaliza os caminhos a partir da raiz do monorepo e os consolida em `coverage/lcov.info`. Esse relatório permanece disponível como artefato por sete dias e alimenta o SonarCloud. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
 
 ### Proteção das branches
 
@@ -96,8 +96,8 @@ O job:
 3. instala as dependências (`npm ci`) e aplica as migrations do Prisma (`prisma migrate deploy`) usando `DATABASE_URL`/`DIRECT_URL` do ambiente;
 4. aciona o deploy do mesmo commit da API pelo deploy hook do Render;
 5. aguarda `API_HEALTH_URL` responder `HTTP 200` e informar exatamente o SHA aprovado pelo CI (timeout de 20 minutos);
-6. gera o build com Vercel CLI fixado na versão `62.5.0`;
-7. publica o web no Vercel somente depois que a nova API estiver saudável;
+6. gera o build de produção no projeto Vercel selecionado pelos secrets do ambiente, com Vercel CLI fixado na versão `62.5.0`;
+7. publica o web como deployment principal desse projeto somente depois que a nova API estiver saudável, atualizando seu domínio fixo;
 8. publica um resumo do deploy (ambiente, branch, commit, URL e resposta de `/health`) no *Step Summary* da execução do GitHub Actions.
 
 O endpoint `GET /api/health` devolve o campo `data.commit` com o SHA em execução — resolvido por `GIT_SHA` (quando definido no ambiente) ou por `RENDER_GIT_COMMIT` (injetado pelo Render no deploy). Isso permite confirmar *qual* commit está no ar.
@@ -126,6 +126,12 @@ No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure
 - Install Command: `npm ci`;
 - Build Command: `npm run build:web`;
 - Output Directory: `apps/mobile-web/dist`.
+
+Cada GitHub Environment deve guardar o `VERCEL_PROJECT_ID` do projeto correspondente: `staging` aponta para o projeto web de homologação e `production` aponta para o projeto web de produção. O workflow usa `--prod` nos dois casos porque cada projeto representa um ambiente isolado; assim, `development` atualiza o domínio fixo do projeto de staging e `main` atualiza o domínio fixo do projeto de produção.
+
+O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal. Se o navegador ainda remover `window.opener`, o callback usa `BroadcastChannel` entre as duas janelas da mesma origem; a janela principal valida o `state` do OAuth antes de encaminhar o token à API, sem persistir o token nesse canal.
+
+No cliente OAuth 2.0 Web do Google Cloud, cadastre para cada projeto web a origem HTTPS exata, sem barra final, em **Authorized JavaScript origins** e `<origem>/oauthredirect` em **Authorized redirect URIs**. Para staging, os valores são `https://kapa-web-staging.vercel.app` e `https://kapa-web-staging.vercel.app/oauthredirect`. O Client ID desse cliente deve ser o mesmo em `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no Vercel e `GOOGLE_WEB_CLIENT_ID` no Render.
 
 Use projetos sem auto-deploy pelo Git ou desative os builds automáticos da integração para não publicar antes do CI nem criar deploys duplicados. Copie os IDs do projeto e da organização para os respectivos ambientes do GitHub.
 
@@ -213,5 +219,6 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 - [Deploys e integração com checks no Render](https://render.com/docs/deploys)
 - [Deploy hooks do Render](https://render.com/docs/deploy-hooks)
 - [Vercel com GitHub Actions](https://vercel.com/docs/git/vercel-for-github)
+- [Ambientes e domínios de deployment no Vercel](https://vercel.com/docs/deployments/environments)
 - [Ambientes e proteção de deploy no GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
 - [Exportação web estática com Expo Router](https://docs.expo.dev/router/web/static-rendering/)
