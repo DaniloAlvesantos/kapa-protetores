@@ -37,7 +37,7 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
-O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; por isso, o job executa nos Pull Requests e nos pushes para `main`, mas é pulado no push de `development`. Antes do merge, o PR já precisa ter passado pelo Quality Gate; depois do merge, os demais checks são executados novamente sobre o commit integrado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
+O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; por isso, o job executa nos Pull Requests e nos pushes para `main`, mas é pulado no push de `development`. Antes do merge, o PR já precisa ter passado pelo Quality Gate; depois do merge, os demais checks são executados novamente sobre o commit integrado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) ficam restritas a tipos, configurações, ao cliente Redis e a telas exercitadas por testes de integração; a infraestrutura PostgreSQL passa a ser medida pelos testes unitários do `PrismaService`.
 
 ### Gate de auditoria de dependências
 
@@ -151,7 +151,9 @@ Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada
 - `DATABASE_URL`: conexão via pooler (usada pela API em runtime);
 - `DIRECT_URL`: conexão usada pelas migrations do Prisma.
 
-As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`, acrescentando `?sslmode=require`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+
+No runtime da API, cadastre no Render o certificado raiz baixado em **Supabase > Database > Settings > SSL Configuration** como Secret File chamado `supabase-ca.crt`. O arquivo fica disponível em `/etc/secrets/supabase-ca.crt`. Configure somente a `DATABASE_URL` do Render com `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`, preservando os demais componentes e parâmetros da URL. O `pg` lê a CA pela connection string e verifica o certificado e o hostname. Não replique esse caminho nas secrets do GitHub, pois o arquivo do Render não existe no runner das migrations.
 
 ### Onde cada valor é configurado
 

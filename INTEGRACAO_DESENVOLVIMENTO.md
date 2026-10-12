@@ -484,7 +484,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - A conexão Redis aceita `REDIS_URL` com os protocolos `redis://` ou `rediss://`. `REDIS_PORT` e `REDIS_PASSWORD` permanecem como fallback exclusivo para o Redis local em `localhost`.
 - Preview Environments do Render podem criar cópias de serviços e bancos por PR e têm cobrança própria; só devem ser ativados com um Blueprint e ambiente de dados de teste apropriado. O CI não cria recursos cloud nem altera o schema do PostgreSQL.
 - Builds de distribuição Android/iOS e publicação nas lojas não estão automatizados nesta etapa. Expo EAS pode ser conectado quando o projeto definir o fluxo de release mobile.
-- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) nos Pull Requests do próprio repositório e nos pushes para `main`, sendo pulado em PRs de fork e no push de `development`. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; o PR precisa passar pelo gate antes do merge, e os outros checks são executados novamente sobre o commit integrado em `development`. O job depende de `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o Quality Gate; uma reprovação, inclusive cobertura de código novo abaixo de 80%, falha o CI. `sonar.coverage.exclusions` remove infraestrutura de banco/Redis e telas do app, que não possuem teste unitário.
+- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) nos Pull Requests do próprio repositório e nos pushes para `main`, sendo pulado em PRs de fork e no push de `development`. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; o PR precisa passar pelo gate antes do merge, e os outros checks são executados novamente sobre o commit integrado em `development`. O job depende de `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o Quality Gate; uma reprovação, inclusive cobertura de código novo abaixo de 80%, falha o CI. `sonar.coverage.exclusions` permanece restrito a tipos/configurações, ao cliente Redis e a telas do app; `PrismaService` é medido pelos testes unitários de configuração do pool.
 
 ---
 
@@ -547,11 +547,13 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ### 11. Conexão de Banco de Dados Remota / Supabase (`PrismaService.ts`)
 
-* **Configuração de Pool Resiliente**:
-  * O `pg.Pool` detecta conexões remotas (URLs contendo `supabase` ou `pooler.supabase.com`, ou ambiente de produção) e ativa automaticamente SSL com `{ rejectUnauthorized: false }`.
+* **Configuração de Pool Resiliente e TLS verificado**:
+  * O `pg.Pool` recebe a connection string sem sobrescrever as opções TLS. Em Render, a `DATABASE_URL` usa `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`; o parser do `pg` carrega a CA do Supabase e mantém a validação do certificado e do hostname ativa.
+  * O certificado é cadastrado como Secret File `supabase-ca.crt` no Render e não é armazenado no repositório. Extensões de certificado também são ignoradas por Git e Docker.
+  * O PostgreSQL local continua usando sua URL sem parâmetros SSL. Não use `rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0` ou `sslmode=disable` para contornar falhas de certificado.
   * `connectionTimeoutMillis` aumentado para `15000` (15 segundos) para suportar latência e handshakes TLS de instâncias em nuvem.
   * Registro de listener `pool.on('error')` para tratar encerramentos de conexões ociosas (idle) por parte do pooler do Supabase sem derrubar a aplicação.
-  * Recomenda-se utilizar a URL do **Connection Pooler (Supavisor)** do Supabase (porta `5432` Session ou `6543` Transaction com `?sslmode=require`) para compatibilidade com redes locais IPv4.
+  * Recomenda-se utilizar a URL do **Session Pooler (Supavisor)** do Supabase, porta `5432`, para compatibilidade com redes IPv4 do Render.
 
 ---
 
