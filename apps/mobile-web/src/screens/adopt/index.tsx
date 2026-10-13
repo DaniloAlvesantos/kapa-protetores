@@ -173,7 +173,7 @@ export function AdoptScreen() {
           )}
         </View>
       ) : (
-        <View className="flex-row flex-wrap justify-center sm:justify-start gap-4">
+        <View className="flex-row flex-wrap items-center justify-center gap-4">
           {filteredAnimals.map((animal) => (
             <PetCard
               key={animal.id}

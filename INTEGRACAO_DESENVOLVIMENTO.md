@@ -56,7 +56,11 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
   * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
   * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
   * No Vercel, [`vercel.json`](vercel.json) envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para permitir a comunicação necessária com a popup OAuth e reescreve as rotas da SPA para `index.html`, evitando `404` ao abrir ou recarregar `/signIn` e outras rotas do Expo Router.
-  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`). No web, `AuthSession.makeRedirectUri({ path: 'oauthredirect' })` gera `<origem>/oauthredirect`, evitando usar a tela atual `/signIn` como callback.
+  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`). No web, `AuthSession.makeRedirectUri({ path: 'oauthredirect' })` gera `<origem>/oauthredirect` (ex.: `http://localhost:8081/oauthredirect` no desenvolvimento local ou `https://kapa-web-staging.vercel.app/oauthredirect` em homologação), evitando usar a tela atual `/signIn` como callback.
+  * **Configuração obrigatória no Google Cloud Console (OAuth 2.0 Web Client)**:
+    * **Authorized JavaScript origins** (Origens JavaScript autorizadas): `http://localhost:8081` (desenvolvimento local, sem barra no final) e `https://kapa-web-staging.vercel.app` (homologação).
+    * **Authorized redirect URIs** (URIs de redirecionamento autorizados): `http://localhost:8081/oauthredirect` e `https://kapa-web-staging.vercel.app/oauthredirect`.
+    * *Nota sobre `redirect_uri_mismatch` (Erro 400)*: Ocorre quando a URI requisitada pelo navegador (`http://localhost:8081/oauthredirect`) não está cadastrada na lista de URIs autorizadas do Client ID Web utilizado. Após cadastrar no console do Google, as alterações podem levar de alguns segundos a até 5 minutos para propagar globalmente.
   * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) executa `WebBrowser.maybeCompleteAuthSession()` para devolver o resultado à janela que iniciou o OAuth e exibe a tela de carregamento da marca enquanto a validação com a API é concluída. Quando um navegador remove `window.opener` durante o isolamento COOP, o callback usa `BroadcastChannel` apenas entre abas da mesma origem; a janela principal continua validando o `state` pelo `AuthRequest.parseReturnUrl(...)` antes de aceitar o token, e o valor não é persistido nem registrado em logs.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
   * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
@@ -458,7 +462,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 ### Banco de dados e infraestrutura
 
 - PostgreSQL, Redis e MinIO estão configurados em `apps/server/docker-compose.yaml`.
-- `npm run dev:server` inicia somente PostgreSQL e Redis antes da API. O serviço de armazenamento de objetos não é iniciado automaticamente, pois as imagens atuais do MinIO não estão disponíveis anonimamente no Quay; upload e leitura de fotos exigem configurar um armazenamento S3 compatível.
+- O armazenamento de objetos local utiliza as imagens seguras e públicas do Chainguard (`cgr.dev/chainguard/minio:latest` e `cgr.dev/chainguard/minio-client:latest-dev`), eliminando bloqueios de autenticação (`401 UNAUTHORIZED`) do Quay.io. Para iniciar o storage localmente, execute: `docker compose -f apps/server/docker-compose.yaml up -d storage storage-init`.
 - O Redis local exige senha.
 - O MinIO cria automaticamente o bucket `kapa-public` por meio do serviço de inicialização `storage-init`.
 - O bucket permite leitura pública das imagens; gravação continua restrita às credenciais S3 do backend.
@@ -806,4 +810,39 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Implementados testes em [`apps/mobile-web/test/contexts/AuthProvider.spec.tsx`](apps/mobile-web/test/contexts/AuthProvider.spec.tsx) cobrindo redirecionamento condicional para o formulário no primeiro login (404) e para as abas nos logins subsequentes (200).
   * Implementados testes em [`apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx`](apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx) cobrindo renderização e fluxo de saída.
   * Adicionados testes unitários para o endpoint `getMe` em [`apps/server/test/controllers/AdopterProfileController.spec.ts`](apps/server/test/controllers/AdopterProfileController.spec.ts).
+
+---
+
+### 24. Busca e Filtros de Animais para Adoção (`SearchAdoptForm` e TanStack Query)
+
+* **Gerenciamento de Formulário e Validação (`react-hook-form`)**:
+  * Componente [`SearchAdoptForm`](apps/mobile-web/src/components/forms/searchAdopt/index.tsx) refatorado para gerenciar estado e validação através de `react-hook-form` (`useForm`, `Controller`, `useWatch`).
+  * Em [`model.ts`](apps/mobile-web/src/components/forms/searchAdopt/model.ts), definido o schema Zod `searchAdoptFormSchema` com campos estritos sem `.default()`, resolvendo a variância de tipos do `zodResolver` entre `z.input` e `z.output`.
+  * Observabilidade reativa em conformidade com o React Compiler através de `useWatch({ control })`, evitando advertências de bibliotecas incompatíveis.
+  * Inputs controlados via `Controller`: campo de texto `breed` (`SecondaryInputText`) com debounce de 350ms, e seletores em chips `specie`, `gender` e `size` integrados com `PrimaryChipGroup`.
+* **Camada de Dados Assíncrona com TanStack Query (`@tanstack/react-query`)**:
+  * Hook [`useAdoptAnimals`](apps/mobile-web/src/hooks/useAdoptAnimals.ts):
+    * Gerencia busca de animais disponíveis para adoção via `GET /api/animals` sob a chave de consulta `['animals', 'adopt']`.
+    * Configurado com `staleTime: 60_000`, `gcTime: 300_000` e política de retentativas controlada.
+  * Hook [`useSearchAdopt(filters)`](apps/mobile-web/src/hooks/useAdoptAnimals.ts):
+    * Combina `useAdoptAnimals` com filtragem reativa em memória através de `matchesSearchAdoptFilters`.
+  * Tela de Adoção ([`AdoptScreen`](apps/mobile-web/src/screens/adopt/index.tsx)):
+    * Substituição de estados manuais (`useState`/`useEffect`) pelo hook `useSearchAdopt`.
+    * Conexão nativa do `RefreshControl` e botão de recarga com `refetch()` e flags `isRefetching` / `isLoading`.
+* **Suíte de Testes Automatizados**:
+  * [`apps/mobile-web/test/components/SearchAdoptForm.spec.tsx`](apps/mobile-web/test/components/SearchAdoptForm.spec.tsx): valida atualização de campos via `react-hook-form`, debounce de busca, filtros avançados e reset de filtros.
+  * [`apps/mobile-web/test/hooks/useAdoptAnimals.spec.tsx`](apps/mobile-web/test/hooks/useAdoptAnimals.spec.tsx): valida ciclo de vida da consulta com TanStack Query e aplicação de filtros em memória.
+
+---
+
+### 25. Armazenamento de Objetos Local com Chainguard MinIO
+
+* **Imagens Seguras e Puxáveis sem Autenticação**:
+  * A configuração do Docker Compose em [`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml) foi atualizada para utilizar as imagens públicas e ativas da Chainguard:
+    * `storage`: `cgr.dev/chainguard/minio:latest`
+    * `storage-init`: `cgr.dev/chainguard/minio-client:latest-dev` (inclui suporte a `/bin/sh` para o script de inicialização do bucket e políticas)
+  * Corrige a falha de `401 UNAUTHORIZED` em pulls anônimos do Quay.io (`quay.io/minio/minio` e `quay.io/minio/mc`).
+* **Inicialização Automatizada do Bucket**:
+  * O serviço `storage-init` aguarda o servidor MinIO responder na porta 9000, configura o alias local com as credenciais `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD`, cria o bucket `kapa-public` caso não exista (`mc mb --ignore-existing`) e define a política de download anônimo para acesso público às fotos de animais (`mc anonymous set download local/kapa-public`).
+
 

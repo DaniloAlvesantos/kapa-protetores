@@ -24,7 +24,7 @@ services:
       - POSTGRES_DB=kapa
 
   storage:
-    image: quay.io/minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: kapa-storage
     command: server /data --console-address ":9001"
     ports:
@@ -37,7 +37,7 @@ services:
       MINIO_ROOT_PASSWORD: kapa-local-storage-secret
 
   storage-init:
-    image: quay.io/minio/mc:latest
+    image: cgr.dev/chainguard/minio-client:latest-dev
     depends_on:
       - storage
     entrypoint: >
