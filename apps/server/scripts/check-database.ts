@@ -1,15 +1,39 @@
 import '../src/config/env';
 import { PrismaService } from '../src/database/PrismaService';
 
-async function main(): Promise<void> {
-  const service = PrismaService.getInstance();
+export interface DatabaseCheckService {
+  client: {
+    $queryRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>;
+  };
+  disconnect: () => Promise<void>;
+}
+
+export async function checkDatabase(
+  service: DatabaseCheckService = PrismaService.getInstance(),
+): Promise<void> {
   try {
     await service.client.$queryRaw`SELECT 1`;
     console.log(JSON.stringify({ event: 'database_connection_ok' }));
-  } finally { await service.disconnect(); }
+  } finally {
+    await service.disconnect();
+  }
 }
 
-void main().catch(() => {
-  console.error(JSON.stringify({ event: 'database_connection_failed', message: 'Confira DATABASE_URL, rede e certificado TLS.' }));
-  process.exitCode = 1;
-});
+export async function run(): Promise<void> {
+  try {
+    await checkDatabase();
+  } catch {
+    console.error(
+      JSON.stringify({
+        event: 'database_connection_failed',
+        message: 'Confira DATABASE_URL, rede e certificado TLS.',
+      }),
+    );
+    process.exitCode = 1;
+  }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  void run();
+}
+

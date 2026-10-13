@@ -82,16 +82,20 @@ describe('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts 
 
   it('persists dose history in PostgreSQL and preserves omitted lists on update', async () => {
     const repository = new PostgresAnimalRepository(ctx.prisma);
+    const initialDoses = [{ status: 'sim' as const, data: '10/10/2026' }];
     const animal = await new AnimalService(repository).create({
       name: 'Dose test', breed: 'SRD', species: 'dog', gender: 'male', weightKg: 10,
       age: 2, ageStage: 2, size: 3, energyLevel: 3, kidFriendly: 3, noiseLevel: 3,
       apartmentFriendly: false, otherPetFriendly: true, healthCondition: 'healthy',
       castrated: 'unknown', vaccinated: false, dewormed: 'unknown',
+      v10Doses: initialDoses, vacinaRaivaDoses: initialDoses, vermifugoDoses: initialDoses,
       rescuedAt: '2026-10-10T00:00:00.000Z', place: 'Test', mood: 'Calm', status: 'rescued',
     });
     const animalId = animal.getId().getValue();
     const doses = [{ status: 'sim' as const, data: '10/10/2026' }, { status: 'nao' as const }];
-    expect(animal.toDTO().v10Doses).toEqual([]);
+    expect(animal.toDTO().v10Doses).toEqual(initialDoses);
+    expect(animal.toDTO().vacinaRaivaDoses).toEqual(initialDoses);
+    expect(animal.toDTO().vermifugoDoses).toEqual(initialDoses);
     await repository.update(animalId, { v10Doses: doses, vacinaRaivaDoses: doses, vermifugoDoses: doses });
     expect((await repository.findById(animalId))?.toDTO().v10Doses).toEqual(doses);
     await repository.update(animalId, { v10Doses: [] });

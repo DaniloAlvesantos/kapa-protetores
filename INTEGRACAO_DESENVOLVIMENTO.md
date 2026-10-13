@@ -794,3 +794,11 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 - Configurado Supabase Storage S3 no .env local, bucket público kapa-public e região us-east-1. Chaves permanecem fora do Git.
 - Dez fotos JPEG originais foram lidas diretamente do ZIP, enviadas com chaves únicas e vinculadas em tb_animal_photos após verificar o acesso público HTTP. Uma foto por cão de demonstração. Nenhuma alteração de schema.
+
+### 26. Ajuste de cobertura do SonarCloud e limpeza de código não utilizado (13/10/2026)
+
+- Removido `apps/server/src/database/connectionConfig.ts` e seu teste `connectionConfig.spec.ts`. O arquivo era código não utilizado remanescente do merge de `development`, uma vez que a validação TLS com CA é gerenciada diretamente no `PrismaService` (`createPostgresPoolConfig`) padronizado na branch de integração.
+- `apps/server/scripts/check-database.ts` foi modularizado para exportar `checkDatabase` e `run`, permitindo testes unitários dedicados em `apps/server/test/scripts/checkDatabase.spec.ts` cobrindo cenários de sucesso e falha.
+- Adicionado `apps/server/scripts/**` a `sonar.coverage.exclusions` em `sonar-project.properties`, alinhando os scripts utilitários de CLI com as diretrizes do monorepo.
+- Adicionados testes unitários em `apps/server/test/repositories/PostgresAnimalRepository.spec.ts` e atualizado o teste de persistência real em `databasePersistence.spec.ts` para exercitar mapeamento e persistência de doses na criação e atualização, elevando a cobertura de código novo acima da meta de 80% do Quality Gate.
+
