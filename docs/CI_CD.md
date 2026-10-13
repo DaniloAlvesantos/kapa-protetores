@@ -30,14 +30,14 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | --- | --- |
 | `CI / ESLint` | Instalação reproduzível com `npm ci`, ESLint, geração do Prisma Client e type-check |
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
-| `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
+| `CI / Cobertura` | Testes da API e do frontend com LCOV consolidado, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
 | `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa nos PRs do próprio repositório e em pushes para `main`) |
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
-O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; por isso, o job executa nos Pull Requests e nos pushes para `main`, mas é pulado no push de `development`. Antes do merge, o PR já precisa ter passado pelo Quality Gate; depois do merge, os demais checks são executados novamente sobre o commit integrado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
+O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; por isso, o job executa nos Pull Requests e nos pushes para `main`, mas é pulado no push de `development`. Antes do merge, o PR já precisa ter passado pelo Quality Gate; depois do merge, os demais checks são executados novamente sobre o commit integrado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) ficam restritas a tipos, configurações, ao cliente Redis e a telas exercitadas por testes de integração; a infraestrutura PostgreSQL passa a ser medida pelos testes unitários do `PrismaService`.
 
 ### Gate de auditoria de dependências
 
@@ -54,7 +54,7 @@ Em PRs criados dentro do próprio repositório, o workflow publica um comentári
 - cobertura de statements, branches, functions e lines;
 - resultados agrupados em `mobile-web`, `server`, `shared` e total.
 
-O relatório completo `coverage/lcov.info` permanece disponível como artefato por sete dias. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
+O job gera relatórios LCOV para `server` e `mobile-web`, normaliza os caminhos a partir da raiz do monorepo e os consolida em `coverage/lcov.info`. Esse relatório permanece disponível como artefato por sete dias e alimenta o SonarCloud. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
 
 ### Proteção das branches
 
@@ -129,7 +129,9 @@ No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure
 
 Cada GitHub Environment deve guardar o `VERCEL_PROJECT_ID` do projeto correspondente: `staging` aponta para o projeto web de homologação e `production` aponta para o projeto web de produção. O workflow usa `--prod` nos dois casos porque cada projeto representa um ambiente isolado; assim, `development` atualiza o domínio fixo do projeto de staging e `main` atualiza o domínio fixo do projeto de produção.
 
-O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal.
+O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal. Se o navegador ainda remover `window.opener`, o callback usa `BroadcastChannel` entre as duas janelas da mesma origem; a janela principal valida o `state` do OAuth antes de encaminhar o token à API, sem persistir o token nesse canal.
+
+No cliente OAuth 2.0 Web do Google Cloud, cadastre para cada projeto web a origem HTTPS exata, sem barra final, em **Authorized JavaScript origins** e `<origem>/oauthredirect` em **Authorized redirect URIs**. Para staging, os valores são `https://kapa-web-staging.vercel.app` e `https://kapa-web-staging.vercel.app/oauthredirect`. O Client ID desse cliente deve ser o mesmo em `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no Vercel e `GOOGLE_WEB_CLIENT_ID` no Render.
 
 Use projetos sem auto-deploy pelo Git ou desative os builds automáticos da integração para não publicar antes do CI nem criar deploys duplicados. Copie os IDs do projeto e da organização para os respectivos ambientes do GitHub.
 
@@ -149,7 +151,9 @@ Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada
 - `DATABASE_URL`: conexão via pooler (usada pela API em runtime);
 - `DIRECT_URL`: conexão usada pelas migrations do Prisma.
 
-As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`, acrescentando `?sslmode=require`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+
+No runtime da API, cadastre no Render o certificado raiz baixado em **Supabase > Database > Settings > SSL Configuration** como Secret File chamado `supabase-ca.crt`. O arquivo fica disponível em `/etc/secrets/supabase-ca.crt`. Configure somente a `DATABASE_URL` do Render com `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`, preservando os demais componentes e parâmetros da URL. O `pg` lê a CA pela connection string e verifica o certificado e o hostname. Não replique esse caminho nas secrets do GitHub, pois o arquivo do Render não existe no runner das migrations.
 
 ### Onde cada valor é configurado
 

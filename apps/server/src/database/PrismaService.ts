@@ -1,8 +1,18 @@
 import '../config/env';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-import { databaseConnectionConfig } from './connectionConfig';
+import { Pool, type PoolConfig } from 'pg';
+
+export function createPostgresPoolConfig(
+  connectionString: string,
+): PoolConfig {
+  return {
+    connectionString,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+  };
+}
 
 export class PrismaService {
   private static instance?: PrismaService;
@@ -17,10 +27,15 @@ export class PrismaService {
       );
     }
 
-    this.pool = new Pool(databaseConnectionConfig(connectionString, process.env.NODE_ENV));
+    // `pg` reads sslmode and sslrootcert from the connection string. Adding an
+    // `ssl` object here would create a second, conflicting TLS configuration.
+    this.pool = new Pool(createPostgresPoolConfig(connectionString));
 
-    this.pool.on('error', () => {
-      console.error(JSON.stringify({ event: 'database_idle_connection_error' }));
+    this.pool.on('error', (err) => {
+      console.error(
+        '[PrismaService] Unexpected error on idle PostgreSQL client:',
+        err,
+      );
     });
 
     const adapter = new PrismaPg(this.pool);
