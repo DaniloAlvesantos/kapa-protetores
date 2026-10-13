@@ -835,14 +835,18 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ---
 
-### 25. Armazenamento de Objetos Local com Chainguard MinIO
+### 25. Armazenamento de Objetos Flexível (Chainguard MinIO ou Supabase Storage via .env)
 
-* **Imagens Seguras e Puxáveis sem Autenticação**:
-  * A configuração do Docker Compose em [`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml) foi atualizada para utilizar as imagens públicas e ativas da Chainguard:
+* **Seleção de Provedor por Variável de Ambiente (`STORAGE_PROVIDER`)**:
+  * Implementado [`getStorageConfig`](apps/server/src/config/storageConfig.ts) para permitir que o desenvolvedor escolha facilmente o backend de armazenamento através de `STORAGE_PROVIDER` no `.env`:
+    * `STORAGE_PROVIDER=docker`: Utiliza MinIO local via Docker Compose (porta 9000).
+    * `STORAGE_PROVIDER=supabase`: Utiliza Supabase Storage com compatibilidade S3 (`storage.supabase.co/storage/v1/s3` e URLs públicas via `supabase.co/storage/v1/object/public`).
+    * `STORAGE_PROVIDER=custom` (ou variáveis `S3_*` diretas): Utilizado para deploys na nuvem (AWS S3, Cloudflare R2, Render).
+* **Imagens Seguras do MinIO (Docker)**:
+  * A configuração do Docker Compose em [`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml) utiliza as imagens públicas da Chainguard:
     * `storage`: `cgr.dev/chainguard/minio:latest`
-    * `storage-init`: `cgr.dev/chainguard/minio-client:latest-dev` (inclui suporte a `/bin/sh` para o script de inicialização do bucket e políticas)
-  * Corrige a falha de `401 UNAUTHORIZED` em pulls anônimos do Quay.io (`quay.io/minio/minio` e `quay.io/minio/mc`).
-* **Inicialização Automatizada do Bucket**:
-  * O serviço `storage-init` aguarda o servidor MinIO responder na porta 9000, configura o alias local com as credenciais `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD`, cria o bucket `kapa-public` caso não exista (`mc mb --ignore-existing`) e define a política de download anônimo para acesso público às fotos de animais (`mc anonymous set download local/kapa-public`).
+    * `storage-init`: `cgr.dev/chainguard/minio-client:latest-dev` (com `/bin/sh` e criação automática do bucket `kapa-public` com acesso `download`).
+* **Suíte de Testes Automatizados**:
+  * [`apps/server/test/config/storageConfig.spec.ts`](apps/server/test/config/storageConfig.spec.ts): Valida o carregamento dos provedores `docker`, `supabase` e `custom`, bem como sobreposição de endpoints, chaves e buckets.
 
 

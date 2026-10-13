@@ -4,6 +4,7 @@ import { communityEventRouter } from './community-events.routes';
 import { ApiRouter } from './ApiRouter';
 import { healthRouter } from './health.routes';
 import { prisma } from '../database/PrismaService';
+import { getStorageConfig } from '../config/storageConfig';
 import { PostgresAnimalRepository } from '../repositories/PostgresAnimalRepository';
 import { UserRepository } from '../repositories/UserRepository';
 import { AnimalService } from '../services/AnimalService';
@@ -34,14 +35,15 @@ const userRepository = new UserRepository(prisma);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
 const animalService = new AnimalService(animalRepository);
+const storageConfig = getStorageConfig();
 const animalPhotoService = new AnimalPhotoService(
   prisma,
-  process.env.S3_BUCKET ?? 'kapa-public',
-  process.env.S3_PUBLIC_URL ?? 'http://localhost:9000',
-  process.env.S3_ENDPOINT ?? 'http://localhost:9000',
-  process.env.S3_REGION ?? 'us-east-1',
-  process.env.S3_ACCESS_KEY ?? '',
-  process.env.S3_SECRET_KEY ?? '',
+  storageConfig.bucket,
+  storageConfig.publicUrl,
+  storageConfig.endpoint,
+  storageConfig.region,
+  storageConfig.accessKeyId,
+  storageConfig.secretAccessKey,
 );
 const animalsRouter = new AnimalsRouter(
   new AnimalsController(animalService),
