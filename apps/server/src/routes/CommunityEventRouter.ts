@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { CommunityEventController } from '../controllers/CommunityEventController';
-import { authTokenHandler } from '../middlewares/authTokenHandler';
 import { volunteerOnlyHandler } from '../middlewares/volunteerOnlyHandler';
 import { AuthMiddleware } from '../middlewares/AuthMiddleware';
 import { communityEventManagerOnlyHandler } from '../middlewares/communityEventManagerOnlyHandler';
@@ -27,7 +26,17 @@ export class CommunityEventRouter {
       validateBody(createCommunityEventSchema),
       controller.create,
     );
-    this.router.get('/', authTokenHandler, volunteerOnlyHandler, controller.listUpcoming);
-    this.router.post('/:id/volunteers', authTokenHandler, volunteerOnlyHandler, controller.signUp);
+    this.router.get(
+      '/',
+      this.auth.authenticate,
+      volunteerOnlyHandler,
+      controller.listUpcoming,
+    );
+    this.router.post(
+      '/:id/volunteers',
+      this.auth.authenticate,
+      volunteerOnlyHandler,
+      controller.signUp,
+    );
   }
 }

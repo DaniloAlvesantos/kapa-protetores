@@ -1,8 +1,4 @@
-import { authRouter } from './auth.routes';
-import { userRouter } from './user.routes';
-import { communityEventRouter } from './community-events.routes';
 import { ApiRouter } from './ApiRouter';
-import { healthRouter } from './health.routes';
 import { prisma } from '../database/PrismaService';
 import { getStorageConfig } from '../config/storageConfig';
 import { PostgresAnimalRepository } from '../repositories/PostgresAnimalRepository';
@@ -23,6 +19,19 @@ import { AdopterProfileRepository } from '../repositories/AdopterProfileReposito
 import { AdopterProfileService } from '../services/AdopterProfileService';
 import { AdopterProfileController } from '../controllers/AdopterProfileController';
 import { AdopterProfileRouter } from './AdopterProfileRouter';
+import { UserRouter } from './UserRouter';
+import { UserController } from '../controllers/UserController';
+import { UserService } from '../services/UserService';
+import { AuthController } from '../controllers/AuthController';
+import { AuthRouter } from './AuthRouter';
+import { HealthService } from '../services/HealthService';
+import { HealthController } from '../controllers/HealthController';
+import { HealthRouter } from './HealthRouter';
+import { redisService } from '../services/RedisService';
+import { CommunityEventRepository } from '../repositories/CommunityEventRepository';
+import { CommunityEventService } from '../services/CommunityEventService';
+import { CommunityEventController } from '../controllers/CommunityEventController';
+import { CommunityEventRouter } from './CommunityEventRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -31,7 +40,18 @@ const jwtService = new JwtService(
   Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
 );
 const authMiddleware = new AuthMiddleware(jwtService);
+
+const healthService = new HealthService();
+const healthController = new HealthController(healthService, redisService);
+const healthRouter = new HealthRouter(healthController);
+
 const userRepository = new UserRepository(prisma);
+const userService = new UserService(userRepository);
+const userController = new UserController(userService);
+const userRouter = new UserRouter(userController, authMiddleware);
+
+const authController = new AuthController(userService);
+const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
 const animalService = new AnimalService(animalRepository);
@@ -45,6 +65,7 @@ const animalPhotoService = new AnimalPhotoService(
   storageConfig.accessKeyId,
   storageConfig.secretAccessKey,
 );
+
 const animalsRouter = new AnimalsRouter(
   new AnimalsController(animalService),
   new AnimalPhotosController(animalPhotoService),
@@ -57,15 +78,34 @@ const authService = new AuthService(
   new PasswordHasher(),
   jwtService,
 );
+
 const credentialsRouter = new CredentialsRouter(
   new CredentialsController(authService),
   authMiddleware,
 );
 
 const adopterProfileRepository = new AdopterProfileRepository(prisma);
-const adopterProfileService = new AdopterProfileService(adopterProfileRepository);
-const adopterProfileController = new AdopterProfileController(adopterProfileService);
-const adopterProfileRouter = new AdopterProfileRouter(adopterProfileController);
+const adopterProfileService = new AdopterProfileService(
+  adopterProfileRepository,
+);
+
+const adopterProfileController = new AdopterProfileController(
+  adopterProfileService,
+);
+
+const adopterProfileRouter = new AdopterProfileRouter(
+  adopterProfileController,
+  authMiddleware,
+);
+
+const repository = new CommunityEventRepository(prisma);
+const service = new CommunityEventService(repository);
+const controller = new CommunityEventController(service);
+
+const communityEventRouter = new CommunityEventRouter(
+  controller,
+  authMiddleware,
+);
 
 const apiRouterInstance = new ApiRouter(
   healthRouter,
