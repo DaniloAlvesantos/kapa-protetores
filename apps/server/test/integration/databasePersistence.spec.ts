@@ -9,10 +9,23 @@ import { UUID } from '../../src/domains/UUID';
 import { PostgresAnimalRepository } from '../../src/repositories/PostgresAnimalRepository';
 import { AnimalService } from '../../src/services/AnimalService';
 
+import { execSync } from 'node:child_process';
+
 // Aumenta o timeout do Jest para permitir a inicialização do contêiner e migrações
 jest.setTimeout(60000);
 
-describe('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts SQL', () => {
+const isDockerRunning = (): boolean => {
+  try {
+    execSync('docker info', { stdio: 'ignore', timeout: 3000 });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const describeDocker = isDockerRunning() ? describe : describe.skip;
+
+describeDocker('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts SQL', () => {
   let ctx: TestDatabaseContext;
   let userRepo: UserRepository;
   let profileRepo: AdopterProfileRepository;

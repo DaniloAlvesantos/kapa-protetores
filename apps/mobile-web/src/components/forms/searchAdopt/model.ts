@@ -31,6 +31,13 @@ export const searchAdoptSchema = z.object({
   size: z.enum(['all', 'small', 'medium', 'large']).default('all'),
 });
 
+export const searchAdoptFormSchema = z.object({
+  breed: z.string(),
+  specie: z.enum(['all', 'dog', 'cat']),
+  gender: z.enum(['all', 'male', 'female']),
+  size: z.enum(['all', 'small', 'medium', 'large']),
+});
+
 export type SearchAdoptFilters = z.infer<typeof searchAdoptSchema>;
 
 export const defaultSearchAdoptFilters: SearchAdoptFilters = {

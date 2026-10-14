@@ -106,6 +106,13 @@ export type CreateAdopterProfileInput = Omit<
   'id' | 'createdAt' | 'updatedAt'
 >;
 
+export type CreateAdopterProfileBody = Omit<
+  CreateAdopterProfileInput,
+  'userId'
+>;
+
 export type UpdateAdopterProfileInput = Partial<
   Omit<CreateAdopterProfileInput, 'userId'>
 >;
+
+export type AdopterProfileRequestBody = CreateAdopterProfileBody;

@@ -18,7 +18,11 @@ describe('UserRouter Endpoints Coverage', () => {
       deleteById: () => {},
     } as unknown as UserController;
 
-    const userRouter = new UserRouter(mockController);
+    const mockAuth = {
+      authenticate: (_req: unknown, _res: unknown, next: () => void) => next(),
+    } as unknown as import('../../src/middlewares/AuthMiddleware').AuthMiddleware;
+
+    const userRouter = new UserRouter(mockController, mockAuth);
     const stack = userRouter.router.stack as Array<{
       route?: { path: string; methods: Record<string, boolean> };
     }>;

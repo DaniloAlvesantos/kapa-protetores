@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { FadersIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
 import { palette } from '@/theme';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import {
   defaultSearchAdoptFilters,
+  searchAdoptFormSchema,
   searchAdoptGenderOptions,
   searchAdoptSizeOptions,
   searchAdoptSpeciesOptions,
@@ -16,6 +19,7 @@ import {
 } from './model';
 
 export * from './model';
+export { useAdoptAnimals, useSearchAdopt } from '@/hooks/useAdoptAnimals';
 
 export interface SearchAdoptFormProps {
   onSearch: (filters: SearchAdoptFilters) => void;
@@ -28,37 +32,45 @@ export function SearchAdoptForm({
   initialFilters,
   className = '',
 }: SearchAdoptFormProps) {
-  const [filters, setFilters] = useState<SearchAdoptFilters>(() => ({
-    ...defaultSearchAdoptFilters,
-    ...initialFilters,
-  }));
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  const onSearchRef = useRef(onSearch);
-  useEffect(() => {
-    onSearchRef.current = onSearch;
-  }, [onSearch]);
+  const defaultValues = useMemo(
+    () => ({
+      ...defaultSearchAdoptFilters,
+      ...initialFilters,
+    }),
+    [initialFilters],
+  );
 
-  const prevFiltersRef = useRef(filters);
+  const { control, handleSubmit, reset } = useForm<SearchAdoptFilters>({
+    resolver: zodResolver(searchAdoptFormSchema),
+    defaultValues,
+  });
+
+  const watchedFilters = useWatch({
+    control,
+    defaultValue: defaultValues,
+  });
+  const prevFiltersRef = useRef(watchedFilters);
   const isFirstRender = useRef(true);
 
   const hasActiveFilters = useMemo(
     () =>
       Boolean(
-        filters.breed.trim() !== '' ||
-          filters.specie !== 'all' ||
-          filters.gender !== 'all' ||
-          filters.size !== 'all',
+        (watchedFilters.breed ?? '').trim() !== '' ||
+          (watchedFilters.specie && watchedFilters.specie !== 'all') ||
+          (watchedFilters.gender && watchedFilters.gender !== 'all') ||
+          (watchedFilters.size && watchedFilters.size !== 'all'),
       ),
-    [filters],
+    [watchedFilters],
   );
 
   const advancedFiltersActiveCount = useMemo(() => {
     let count = 0;
-    if (filters.gender !== 'all') count += 1;
-    if (filters.size !== 'all') count += 1;
+    if (watchedFilters.gender && watchedFilters.gender !== 'all') count += 1;
+    if (watchedFilters.size && watchedFilters.size !== 'all') count += 1;
     return count;
-  }, [filters.gender, filters.size]);
+  }, [watchedFilters.gender, watchedFilters.size]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -68,60 +80,59 @@ export function SearchAdoptForm({
 
     const prev = prevFiltersRef.current;
     const chipsChanged =
-      prev.specie !== filters.specie ||
-      prev.gender !== filters.gender ||
-      prev.size !== filters.size;
+      prev.specie !== watchedFilters.specie ||
+      prev.gender !== watchedFilters.gender ||
+      prev.size !== watchedFilters.size;
 
-    prevFiltersRef.current = filters;
+    prevFiltersRef.current = watchedFilters;
+
+    const validatedFilters: SearchAdoptFilters = {
+      breed: watchedFilters.breed ?? '',
+      specie: watchedFilters.specie ?? 'all',
+      gender: watchedFilters.gender ?? 'all',
+      size: watchedFilters.size ?? 'all',
+    };
 
     if (chipsChanged) {
-      onSearchRef.current(filters);
+      onSearch(validatedFilters);
       return;
     }
 
     const timer = setTimeout(() => {
-      onSearchRef.current(filters);
+      onSearch(validatedFilters);
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [filters]);
-
-  const handleFieldChange = useCallback(
-    <K extends keyof SearchAdoptFilters>(
-      key: K,
-      value: SearchAdoptFilters[K],
-    ) => {
-      setFilters((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
+  }, [onSearch, watchedFilters]);
 
   const handleClearFilters = useCallback(() => {
-    const cleared: SearchAdoptFilters = {
-      breed: '',
-      specie: 'all',
-      gender: 'all',
-      size: 'all',
-    };
-    setFilters(cleared);
-    onSearchRef.current(cleared);
-  }, []);
+    reset(defaultSearchAdoptFilters);
+    onSearch(defaultSearchAdoptFilters);
+  }, [onSearch, reset]);
 
   const handleDirectSubmit = useCallback(() => {
-    onSearchRef.current(filters);
-  }, [filters]);
+    void handleSubmit((data: SearchAdoptFilters) => {
+      onSearch(data);
+    })();
+  }, [handleSubmit, onSearch]);
 
   return (
     <View className={`w-full gap-4 ${className}`}>
       <View className="w-full">
-        <SecondaryInputText
-          placeholder="Buscar por raça"
-          value={filters.breed}
-          onChangeText={(text) => handleFieldChange('breed', text)}
-          icon={<MagnifyingGlassIcon size={20} color={palette.denim} />}
-          returnKeyType="search"
-          onSubmitEditing={handleDirectSubmit}
-          accessibilityLabel="Campo de busca por nome ou raça do animal"
+        <Controller
+          control={control}
+          name="breed"
+          render={({ field: { value, onChange } }) => (
+            <SecondaryInputText
+              placeholder="Buscar por raça"
+              value={value}
+              onChangeText={onChange}
+              icon={<MagnifyingGlassIcon size={20} color={palette.denim} />}
+              returnKeyType="search"
+              onSubmitEditing={handleDirectSubmit}
+              accessibilityLabel="Campo de busca por nome ou raça do animal"
+            />
+          )}
         />
       </View>
 
@@ -142,10 +153,16 @@ export function SearchAdoptForm({
             </Pressable>
           )}
         </View>
-        <PrimaryChipGroup<SearchAdoptSpecies>
-          options={searchAdoptSpeciesOptions}
-          value={filters.specie}
-          onChange={(value) => handleFieldChange('specie', value)}
+        <Controller
+          control={control}
+          name="specie"
+          render={({ field: { value, onChange } }) => (
+            <PrimaryChipGroup<SearchAdoptSpecies>
+              options={searchAdoptSpeciesOptions}
+              value={value}
+              onChange={onChange}
+            />
+          )}
         />
       </View>
 
@@ -182,19 +199,31 @@ export function SearchAdoptForm({
         <View className="p-4 bg-white border border-line rounded-xl gap-4">
           <View className="gap-2">
             <Text className="text-sm font-semibold text-ink-muted">Sexo</Text>
-            <PrimaryChipGroup<SearchAdoptGender>
-              options={searchAdoptGenderOptions}
-              value={filters.gender}
-              onChange={(value) => handleFieldChange('gender', value)}
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field: { value, onChange } }) => (
+                <PrimaryChipGroup<SearchAdoptGender>
+                  options={searchAdoptGenderOptions}
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
             />
           </View>
 
           <View className="gap-2">
             <Text className="text-sm font-semibold text-ink-muted">Porte</Text>
-            <PrimaryChipGroup<SearchAdoptSize>
-              options={searchAdoptSizeOptions}
-              value={filters.size}
-              onChange={(value) => handleFieldChange('size', value)}
+            <Controller
+              control={control}
+              name="size"
+              render={({ field: { value, onChange } }) => (
+                <PrimaryChipGroup<SearchAdoptSize>
+                  options={searchAdoptSizeOptions}
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
             />
           </View>
         </View>

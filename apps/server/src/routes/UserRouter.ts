@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/UserController';
-import { authTokenHandler } from '../middlewares/authTokenHandler';
 import { rulesHandler } from '../middlewares/rulesHandler';
+import { AuthMiddleware } from '../middlewares/AuthMiddleware';
 
 export class UserRouter {
   public readonly router: Router = Router();
 
-  constructor(private readonly controller: UserController) {
+  constructor(
+    private readonly controller: UserController,
+    private readonly authController: AuthMiddleware,
+  ) {
     this.initRoutes();
   }
 
@@ -14,7 +17,7 @@ export class UserRouter {
     this.router.get('/count', this.controller.countAll);
     this.router.get(
       '/all',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('admin:*'),
       this.controller.getAll,
     );
@@ -22,49 +25,49 @@ export class UserRouter {
     this.router.post('/signin', this.controller.signIn);
     this.router.get(
       '/me',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:read:own'),
       this.controller.userInfo,
     );
     this.router.patch(
       '/me',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:update:own'),
       this.controller.updateProfile,
     );
     this.router.delete(
       '/me',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:delete:own'),
       this.controller.deleteMe,
     );
     this.router.get(
       '/me/profile',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:read:own'),
       this.controller.getProfile,
     );
     this.router.patch(
       '/me/password',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:update:own'),
       this.controller.updatePassword,
     );
     this.router.get(
       '/:id',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('user:read:other'),
       this.controller.getById,
     );
     this.router.patch(
       '/:id/role',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('admin:*'),
       this.controller.updateRole,
     );
     this.router.delete(
       '/:id',
-      authTokenHandler,
+      this.authController.authenticate,
       rulesHandler('admin:*'),
       this.controller.deleteById,
     );

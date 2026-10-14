@@ -21,8 +21,8 @@ export class CredentialsController {
 
   public me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      if (!req.auth) throw new UnauthorizedError();
-      const data = await this.authService.getProfile(req.auth.userId);
+      if (!req.user) throw new UnauthorizedError();
+      const data = await this.authService.getProfile(req.user.sub);
       res.status(200).json({ success: true, data });
     } catch (error) { next(error); }
   };

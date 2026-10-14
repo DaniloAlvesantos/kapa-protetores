@@ -56,7 +56,11 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
   * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
   * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
   * No Vercel, [`vercel.json`](vercel.json) envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para permitir a comunicação necessária com a popup OAuth e reescreve as rotas da SPA para `index.html`, evitando `404` ao abrir ou recarregar `/signIn` e outras rotas do Expo Router.
-  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`). No web, `AuthSession.makeRedirectUri({ path: 'oauthredirect' })` gera `<origem>/oauthredirect`, evitando usar a tela atual `/signIn` como callback.
+  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`). No web, `AuthSession.makeRedirectUri({ path: 'oauthredirect' })` gera `<origem>/oauthredirect` (ex.: `http://localhost:8081/oauthredirect` no desenvolvimento local ou `https://kapa-web-staging.vercel.app/oauthredirect` em homologação), evitando usar a tela atual `/signIn` como callback.
+  * **Configuração obrigatória no Google Cloud Console (OAuth 2.0 Web Client)**:
+    * **Authorized JavaScript origins** (Origens JavaScript autorizadas): `http://localhost:8081` (desenvolvimento local, sem barra no final) e `https://kapa-web-staging.vercel.app` (homologação).
+    * **Authorized redirect URIs** (URIs de redirecionamento autorizados): `http://localhost:8081/oauthredirect` e `https://kapa-web-staging.vercel.app/oauthredirect`.
+    * *Nota sobre `redirect_uri_mismatch` (Erro 400)*: Ocorre quando a URI requisitada pelo navegador (`http://localhost:8081/oauthredirect`) não está cadastrada na lista de URIs autorizadas do Client ID Web utilizado. Após cadastrar no console do Google, as alterações podem levar de alguns segundos a até 5 minutos para propagar globalmente.
   * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) publica sempre o retorno no `BroadcastChannel` de mesma origem antes de executar `WebBrowser.maybeCompleteAuthSession()`. Isso evita que um retorno `success` do Expo interrompa o fallback quando a política COOP impede a comunicação efetiva por `window.opener`. A janela principal continua validando origem, caminho e `state` pelo `AuthRequest.parseReturnUrl(...)` antes de aceitar o token, e o valor não é persistido nem registrado em logs.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
   * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
@@ -476,7 +480,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 ### Banco de dados e infraestrutura
 
 - PostgreSQL, Redis e MinIO estão configurados em `apps/server/docker-compose.yaml`.
-- `npm run dev:server` inicia somente PostgreSQL e Redis antes da API. O serviço de armazenamento de objetos não é iniciado automaticamente, pois as imagens atuais do MinIO não estão disponíveis anonimamente no Quay; upload e leitura de fotos exigem configurar um armazenamento S3 compatível.
+- O armazenamento de objetos local utiliza as imagens seguras e públicas do Chainguard (`cgr.dev/chainguard/minio:latest` e `cgr.dev/chainguard/minio-client:latest-dev`), eliminando bloqueios de autenticação (`401 UNAUTHORIZED`) do Quay.io. Para iniciar o storage localmente, execute: `docker compose -f apps/server/docker-compose.yaml up -d storage storage-init`.
 - O Redis local exige senha.
 - O MinIO cria automaticamente o bucket `kapa-public` por meio do serviço de inicialização `storage-init`.
 - O bucket permite leitura pública das imagens; gravação continua restrita às credenciais S3 do backend.
@@ -756,6 +760,115 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Tipagem Estrita nos Testes de Integração**:
   * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
 
+---
+
+### 20. Componente `PrimaryCheckBox` e Acessibilidade (`apps/mobile-web`)
+
+* **Aprimoramentos de Arquitetura e UX**:
+  * Implementado em [`apps/mobile-web/src/components/checkboxs/primary/index.tsx`](apps/mobile-web/src/components/checkboxs/primary/index.tsx).
+  * **Modos Controlado e Não Controlado**: suporte completo a `checked`/`value` (controlado) e `defaultChecked`/`initialState` (não controlado).
+  * **Callbacks Resilientes**: suporte a `onChange`, `onValueChange` e retrocompatibilidade com `onClick`, corrigindo fechamento estático (*stale closure*) e erro de digitação de classes (`outline-none`).
+  * **Acessibilidade e Alvos de Toque**: conformidade com alvos mínimos de toque (44-48px via `hitSlop={8}` e `min-h-[44px]`), atributos semânticos (`accessibilityRole="checkbox"`, `accessibilityState={{ checked, disabled }}` e suporte a estado `indeterminate: 'mixed'`).
+  * **Design System**: suporte a variantes de tamanho (`sm`, `md`, `lg`), rótulos tipográficos com `Plus Jakarta Sans`, mensagens de apoio/descrição e estados visuais de erro (`border-danger`), desabilitado (`opacity-50`, `cursor-not-allowed`) e preenchimento primário com `CheckIcon` e `MinusIcon`.
+* **Suíte de Testes Automatizados**:
+  * Implementada em [`apps/mobile-web/test/components/PrimaryCheckBox.spec.tsx`](apps/mobile-web/test/components/PrimaryCheckBox.spec.tsx) utilizando `@testing-library/react-native`, validando renderização, alternância de estado, modo controlado, bloqueio quando desabilitado, estado indeterminado e exibição de erros.
+
+---
+
+### 21. Formulário Multi-etapas de Perfil de Adotante (`AdopterProfileForms`)
+
+* **Arquitetura e Fluxo do Questionário**:
+  * Componente implementado em [`apps/mobile-web/src/components/forms/adopterProfile/index.tsx`](apps/mobile-web/src/components/forms/adopterProfile/index.tsx).
+  * **Configuração Centralizada**: 9 etapas configuradas em [`model.ts`](apps/mobile-web/src/components/forms/adopterProfile/model.ts) cobrindo espécie, sexo, porte, faixa etária, energia, convivência com crianças, ruído, moradia em apartamento e outros pets.
+  * **Variantes de Componente**:
+    * `card`: seleção visual com ícones dedicados (ex.: espécies com `DogIcon`, `CatIcon`, `BirdIcon`).
+    * `checkbox`: linhas interativas acessíveis integradas com `PrimaryCheckBox`.
+    * `chip`: chips arredondados para seleção rápida utilizando o componente reutilizável `PrimaryChip` (`@/components/chips/primaryChip`).
+  * **Progresso e Navegação**:
+    * Indicador numérico de passo ("Passo X de Y") e barra de progresso visual percentual.
+    * Botão "Voltar" disponível a partir da etapa 2.
+    * Botão "Avançar" / "Concluir Perfil" integrado com validação Zod via `react-hook-form` e `@hookform/resolvers/zod`.
+  * **Acessibilidade e Usabilidade**:
+    * Alvos de toque superiores a 48px, papéis semânticos `radio` e `checkbox`.
+    * Mensagens de erro com validação em tempo real.
+* **Suíte de Testes Automatizados**:
+  * Implementada em [`apps/mobile-web/test/components/AdopterProfileForms.spec.tsx`](apps/mobile-web/test/components/AdopterProfileForms.spec.tsx), cobrindo renderização, seleção de opções, submissão de dados, navegação retroativa e estado de conclusão.
+
+---
+
+### 22. Segurança e Remoção de `userId` nas Requisições de Perfil de Adotante (`AdopterProfile`)
+
+* **Mitigação de IDOR / BOLA (Insecure Direct Object Reference)**:
+  * Em conformidade com a seção 8 de [`AGENTS.md`](AGENTS.md), identidades fornecidas pelo cliente não são confiadas.
+  * O schema [`apps/server/src/schemas/adoptionProfile.schema.ts`](apps/server/src/schemas/adoptionProfile.schema.ts) (`adoptionProfileCreate`) foi atualizado para conter exclusivamente os campos de preferências (`adoptionProfilePreferenceFields`), removendo o campo `userId` do payload aceito da requisição.
+* **Extração Segura de Identidade via Token JWT**:
+  * O controlador [`apps/server/src/controllers/AdopterProfileController.ts`](apps/server/src/controllers/AdopterProfileController.ts) no método `create` extrai o `userId` autenticado exclusivamente de `req.user.sub` (injetado pelo middleware `authTokenHandler`).
+  * Caso o usuário não esteja autenticado, rejeita a requisição com `BadRequestError('User authentication required.')`.
+  * O serviço subjacente (`profileService.create`) recebe `{ ...parsed.data, userId }`, associando a criação do registro ao usuário autenticado de forma confiável e inviolável.
+* **Contratos Compartilhados e Tipagem Estrita (`@kapa/shared`)**:
+  * Em [`packages/shared/src/types/user.ts`](packages/shared/src/types/user.ts), foram exportados os tipos `CreateAdopterProfileBody` e `AdopterProfileRequestBody` definidos como `Omit<CreateAdopterProfileInput, 'userId'>`, garantindo conformidade entre front-end e back-end sem expor `userId` nos formulários.
+* **Frontend Mobile / Web**:
+  * O formulário [`apps/mobile-web/src/components/forms/adopterProfile/model.ts`](apps/mobile-web/src/components/forms/adopterProfile/model.ts) e o hook [`apps/mobile-web/src/hooks/useAdopterProfile.ts`](apps/mobile-web/src/hooks/useAdopterProfile.ts) enviam somente os dados de preferência validados para o endpoint autenticado `POST /api/adopter-profiles`.
+
+---
+
+### 23. Obrigatoriedade de Preenchimento do `AdopterProfile` no Primeiro Login
+
+* **Regra de Negócio e Fluxo de Boas-Vindas**:
+  * Ao realizar o primeiro login ou cadastro (via credenciais locais ou Google OAuth), usuários adotantes (`role: 'adopter'`) são obrigados a preencher o formulário multi-etapas de perfil de preferências antes de acessar a navegação principal da aplicação (`/(protected)/(tabs)`).
+* **Guarda de Rotas e Verificação de Estado (`apps/mobile-web`)**:
+  * **Provedor de Autenticação (`AuthProvider`)**:
+    * Implementados no `AuthContext` os estados `hasAdopterProfile` (`boolean | null`) e `isCheckingProfile` (`boolean`), com persistência em chave `@kapa:has-adopter-profile` via `genericStorage`.
+    * A função `checkAdopterProfile` consulta `GET /api/adopter-profiles/me`: caso a resposta seja 404 (`NotFoundError`), define `hasAdopterProfile` como `false` e armazena o status.
+    * No fluxo de login (`establishSession`), adotantes sem perfil cadastrado são imediatamente redirecionados para `/(protected)/adopter-profile`.
+  * **Proteção das Abas Principais (`(protected)/(tabs)/_layout.tsx`)**:
+    * O layout das abas valida se o usuário autenticado é adotante e não possui perfil preenchido (`hasAdopterProfile === false`), emitindo um `<Redirect href="/(protected)/adopter-profile" />` para impedir o desvio do fluxo obrigatório.
+  * **Rota Dedicada de Perfil de Adotante (`app/(protected)/adopter-profile.tsx`)**:
+    * Adicionada a rota protegida associada a [`AdopterProfileScreen`](apps/mobile-web/src/screens/adopterProfile/index.tsx), registrada no `ProtectedLayout`.
+    * Inclui cabeçalho acessível com opção de logout seguro, exibição de mensagens de erro caso a chamada de mutação falhe, e transição para a tela de conclusão com desbloqueio do acesso às abas (`setHasAdopterProfile(true)`).
+* **Suíte de Testes Automatizados**:
+  * Implementados testes em [`apps/mobile-web/test/contexts/AuthProvider.spec.tsx`](apps/mobile-web/test/contexts/AuthProvider.spec.tsx) cobrindo redirecionamento condicional para o formulário no primeiro login (404) e para as abas nos logins subsequentes (200).
+  * Implementados testes em [`apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx`](apps/mobile-web/test/screens/AdopterProfileScreen.spec.tsx) cobrindo renderização e fluxo de saída.
+  * Adicionados testes unitários para o endpoint `getMe` em [`apps/server/test/controllers/AdopterProfileController.spec.ts`](apps/server/test/controllers/AdopterProfileController.spec.ts).
+
+---
+
+### 24. Busca e Filtros de Animais para Adoção (`SearchAdoptForm` e TanStack Query)
+
+* **Gerenciamento de Formulário e Validação (`react-hook-form`)**:
+  * Componente [`SearchAdoptForm`](apps/mobile-web/src/components/forms/searchAdopt/index.tsx) refatorado para gerenciar estado e validação através de `react-hook-form` (`useForm`, `Controller`, `useWatch`).
+  * Em [`model.ts`](apps/mobile-web/src/components/forms/searchAdopt/model.ts), definido o schema Zod `searchAdoptFormSchema` com campos estritos sem `.default()`, resolvendo a variância de tipos do `zodResolver` entre `z.input` e `z.output`.
+  * Observabilidade reativa em conformidade com o React Compiler através de `useWatch({ control })`, evitando advertências de bibliotecas incompatíveis.
+  * Inputs controlados via `Controller`: campo de texto `breed` (`SecondaryInputText`) com debounce de 350ms, e seletores em chips `specie`, `gender` e `size` integrados com `PrimaryChipGroup`.
+* **Camada de Dados Assíncrona com TanStack Query (`@tanstack/react-query`)**:
+  * Hook [`useAdoptAnimals`](apps/mobile-web/src/hooks/useAdoptAnimals.ts):
+    * Gerencia busca de animais disponíveis para adoção via `GET /api/animals` sob a chave de consulta `['animals', 'adopt']`.
+    * Configurado com `staleTime: 60_000`, `gcTime: 300_000` e política de retentativas controlada.
+  * Hook [`useSearchAdopt(filters)`](apps/mobile-web/src/hooks/useAdoptAnimals.ts):
+    * Combina `useAdoptAnimals` com filtragem reativa em memória através de `matchesSearchAdoptFilters`.
+  * Tela de Adoção ([`AdoptScreen`](apps/mobile-web/src/screens/adopt/index.tsx)):
+    * Substituição de estados manuais (`useState`/`useEffect`) pelo hook `useSearchAdopt`.
+    * Conexão nativa do `RefreshControl` e botão de recarga com `refetch()` e flags `isRefetching` / `isLoading`.
+* **Suíte de Testes Automatizados**:
+  * [`apps/mobile-web/test/components/SearchAdoptForm.spec.tsx`](apps/mobile-web/test/components/SearchAdoptForm.spec.tsx): valida atualização de campos via `react-hook-form`, debounce de busca, filtros avançados e reset de filtros.
+  * [`apps/mobile-web/test/hooks/useAdoptAnimals.spec.tsx`](apps/mobile-web/test/hooks/useAdoptAnimals.spec.tsx): valida ciclo de vida da consulta com TanStack Query e aplicação de filtros em memória.
+
+---
+
+### 25. Armazenamento de Objetos Flexível (Chainguard MinIO ou Supabase Storage via .env)
+
+* **Seleção de Provedor por Variável de Ambiente (`STORAGE_PROVIDER`)**:
+  * Implementado [`getStorageConfig`](apps/server/src/config/storageConfig.ts) para permitir que o desenvolvedor escolha facilmente o backend de armazenamento através de `STORAGE_PROVIDER` no `.env`:
+    * `STORAGE_PROVIDER=docker`: Utiliza MinIO local via Docker Compose (porta 9000).
+    * `STORAGE_PROVIDER=supabase`: Utiliza Supabase Storage com compatibilidade S3 (`storage.supabase.co/storage/v1/s3` e URLs públicas via `supabase.co/storage/v1/object/public`).
+    * `STORAGE_PROVIDER=custom` (ou variáveis `S3_*` diretas): Utilizado para deploys na nuvem (AWS S3, Cloudflare R2, Render).
+* **Imagens Seguras do MinIO (Docker)**:
+  * A configuração do Docker Compose em [`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml) utiliza as imagens públicas da Chainguard:
+    * `storage`: `cgr.dev/chainguard/minio:latest`
+    * `storage-init`: `cgr.dev/chainguard/minio-client:latest-dev` (com `/bin/sh` e criação automática do bucket `kapa-public` com acesso `download`).
+* **Suíte de Testes Automatizados**:
+  * [`apps/server/test/config/storageConfig.spec.ts`](apps/server/test/config/storageConfig.spec.ts): Valida o carregamento dos provedores `docker`, `supabase` e `custom`, bem como sobreposição de endpoints, chaves e buckets.
+
 
 
 ### 20. Histórico de doses no cadastro de animais (10/10/2026)
@@ -802,4 +915,13 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 - `apps/server/scripts/check-database.ts` foi modularizado para exportar `checkDatabase` e `run`, permitindo testes unitários dedicados em `apps/server/test/scripts/checkDatabase.spec.ts` cobrindo cenários de sucesso e falha.
 - Adicionado `apps/server/scripts/**` a `sonar.coverage.exclusions` em `sonar-project.properties`, alinhando os scripts utilitários de CLI com as diretrizes do monorepo.
 - Adicionados testes unitários em `apps/server/test/repositories/PostgresAnimalRepository.spec.ts` e atualizado o teste de persistência real em `databasePersistence.spec.ts` para exercitar mapeamento e persistência de doses na criação e atualização, elevando a cobertura de código novo acima da meta de 80% do Quality Gate.
+
+### 27. Resolução de falso positivo no Gitleaks (.gitleaksignore)
+
+- O step `Run Gitleaks` da pipeline de CI (`.github/workflows/quality.yml`) disparou um falso positivo na regra `generic-api-key` no commit histórico `39fcb2e` ao analisar a atribuição da chave secreta S3 via variável de ambiente em `apps/server/src/config/storageConfig.ts`.
+- Criado o arquivo `.gitleaksignore` na raiz do repositório contendo a fingerprint da ocorrência (`39fcb2e9b63fe67dc78d819f28437d7fb4ff5d39:apps/server/src/config/storageConfig.ts:generic-api-key:42`).
+- Adicionado o comentário inline `// gitleaks:allow` em `apps/server/src/config/storageConfig.ts` para evitar que futuras alterações acionem a regra indevidamente.
+- Verificado via execução local do Gitleaks no Docker (`v8.24.3`) com `--log-opts="--no-merges --first-parent origin/development..HEAD"`, garantindo aprovação com zero vazamentos e código de saída 0.
+
+
 

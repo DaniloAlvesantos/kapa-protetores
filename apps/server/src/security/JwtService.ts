@@ -2,7 +2,13 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { JwtPayload, UserRole } from '@kapa/shared';
 import { UnauthorizedError, BaseError } from '../errors';
 
-type TokenPayload = JwtPayload & { role: UserRole; iss: string; aud: string };
+type TokenPayload = JwtPayload & {
+  role: UserRole;
+  iss: string;
+  aud: string;
+  rules?: string[];
+  username?: string;
+};
 
 const encode = (value: object): string =>
   Buffer.from(JSON.stringify(value)).toString('base64url');

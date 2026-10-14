@@ -22,7 +22,11 @@ describe('AdopterProfileRouter', () => {
       delete: () => {},
     } as unknown as AdopterProfileController;
 
-    const adopterProfileRouter = new AdopterProfileRouter(mockController);
+    const mockAuth = {
+      authenticate: (_req: unknown, _res: unknown, next: () => void) => next(),
+    } as unknown as import('../../src/middlewares/AuthMiddleware').AuthMiddleware;
+
+    const adopterProfileRouter = new AdopterProfileRouter(mockController, mockAuth);
 
     const stack = adopterProfileRouter.router.stack as Array<{
       route?: { path: string; methods: Record<string, boolean> };

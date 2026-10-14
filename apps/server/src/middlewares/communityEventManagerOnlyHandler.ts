@@ -7,14 +7,14 @@ export async function communityEventManagerOnlyHandler(
   _res: Response,
   next: NextFunction,
 ): Promise<void> {
-  if (!req.auth) {
+  if (!req.user) {
     next(new UnauthorizedError());
     return;
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.auth.userId },
+      where: { id: req.user.sub },
       select: { role: true },
     });
 

@@ -1,6 +1,5 @@
-import type { Config } from 'jest';
-
-const config: Config = {
+/** @type {import('jest').Config} */
+module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/test'],
@@ -8,6 +7,7 @@ const config: Config = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   clearMocks: true,
   restoreMocks: true,
+  watchman: false,
   moduleNameMapper: {
     '^@kapa/shared$': '<rootDir>/../../packages/shared/src',
     '^@kapa/shared/(.*)$': '<rootDir>/../../packages/shared/src/$1',
@@ -21,5 +21,3 @@ const config: Config = {
     ],
   },
 };
-
-export default config;

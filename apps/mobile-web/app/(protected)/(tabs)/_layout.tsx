@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import {
   HouseIcon,
   PawPrintIcon,
@@ -8,11 +8,26 @@ import {
 } from 'phosphor-react-native';
 import { palette } from '@/theme/colors';
 import { DefaultHeader } from '@/components/header/default';
-import { Platform } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
-  const { user } = useAuth();
+  const { user, hasAdopterProfile, isCheckingProfile } = useAuth();
+
+  if (user?.role === 'adopter') {
+    if (hasAdopterProfile === false) {
+      return <Redirect href="/(protected)/adopter-profile" />;
+    }
+
+    if (hasAdopterProfile === null && isCheckingProfile) {
+      return (
+        <View className="flex-1 items-center justify-center bg-cream">
+          <ActivityIndicator size="large" color="#F18322" />
+        </View>
+      );
+    }
+  }
+
   return (
     <Tabs
       screenOptions={{
