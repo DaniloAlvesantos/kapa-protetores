@@ -61,7 +61,7 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
     * **Authorized JavaScript origins** (Origens JavaScript autorizadas): `http://localhost:8081` (desenvolvimento local, sem barra no final) e `https://kapa-web-staging.vercel.app` (homologação).
     * **Authorized redirect URIs** (URIs de redirecionamento autorizados): `http://localhost:8081/oauthredirect` e `https://kapa-web-staging.vercel.app/oauthredirect`.
     * *Nota sobre `redirect_uri_mismatch` (Erro 400)*: Ocorre quando a URI requisitada pelo navegador (`http://localhost:8081/oauthredirect`) não está cadastrada na lista de URIs autorizadas do Client ID Web utilizado. Após cadastrar no console do Google, as alterações podem levar de alguns segundos a até 5 minutos para propagar globalmente.
-  * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) executa `WebBrowser.maybeCompleteAuthSession()` para devolver o resultado à janela que iniciou o OAuth e exibe a tela de carregamento da marca enquanto a validação com a API é concluída. Quando um navegador remove `window.opener` durante o isolamento COOP, o callback usa `BroadcastChannel` apenas entre abas da mesma origem; a janela principal continua validando o `state` pelo `AuthRequest.parseReturnUrl(...)` antes de aceitar o token, e o valor não é persistido nem registrado em logs.
+  * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) publica sempre o retorno no `BroadcastChannel` de mesma origem antes de executar `WebBrowser.maybeCompleteAuthSession()`. Isso evita que um retorno `success` do Expo interrompa o fallback quando a política COOP impede a comunicação efetiva por `window.opener`. A janela principal continua validando origem, caminho e `state` pelo `AuthRequest.parseReturnUrl(...)` antes de aceitar o token, e o valor não é persistido nem registrado em logs.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
   * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
 
@@ -115,8 +115,9 @@ A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispos
 * **Ciclo de Vida**:
   1. **Inicialização (`loadStorageState`)**: Ao abrir ou recarregar a aplicação, recupera o token e o perfil do usuário. Se válidos, injeta automaticamente o cabeçalho padrão `Authorization: Bearer <token>` na instância do `kapaService` (Axios) e define `isLogged = true`.
   2. **Login com Sucesso**: Tanto `signIn(email, password)` quanto `handleGoogleLogin(idToken)` salvam a sessão, atualizam o estado e redirecionam o usuário para a área protegida `/(protected)/(tabs)`.
-  3. **Logout (`signOut`)**: A opção **Sair** na tela de perfil limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
-  4. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
+  3. **Falhas de autenticação**: respostas `401` dos endpoints públicos `/auth/login`, `/auth/register` e `/auth/google` permanecem no formulário para exibir a mensagem da API. O encerramento automático da sessão continua reservado a respostas de autenticação provenientes de rotas protegidas.
+  4. **Logout (`signOut`)**: A opção **Sair** na tela de perfil limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
+  5. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
 
 ---
 
@@ -269,6 +270,23 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
    *O comando raiz executa o Expo Web e o servidor Express simultaneamente com hot-reloading.*
 
 ---
+
+### 4.3 Preparação das validações após pull ou merge
+
+Quando a atualização alterar o lockfile, o schema Prisma ou o pacote compartilhado, execute na raiz:
+
+```bash
+npm ci
+npm run prisma:generate --workspace=@kapa/server
+npm run build:shared
+npm run type-check
+npm run lint
+npm test
+```
+
+O `npm ci` instala as versões travadas, incluindo Jest e ESLint. A geração do cliente Prisma atualiza o código e os tipos locais; não aplica migrations nem altera o banco. Configure as variáveis do servidor conforme o `.env.example`, incluindo `DIRECT_URL`, antes de gerar o cliente.
+
+Os testes de persistência exigem o Docker em execução e usam um PostgreSQL descartável via Testcontainers, com as migrations existentes aplicadas apenas nesse contêiner. No Windows, confirme que o Docker Desktop está pronto com `docker info` antes de executar `npm test`.
 
 ## 5. Variáveis de Ambiente
 
@@ -488,7 +506,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - A conexão Redis aceita `REDIS_URL` com os protocolos `redis://` ou `rediss://`. `REDIS_PORT` e `REDIS_PASSWORD` permanecem como fallback exclusivo para o Redis local em `localhost`.
 - Preview Environments do Render podem criar cópias de serviços e bancos por PR e têm cobrança própria; só devem ser ativados com um Blueprint e ambiente de dados de teste apropriado. O CI não cria recursos cloud nem altera o schema do PostgreSQL.
 - Builds de distribuição Android/iOS e publicação nas lojas não estão automatizados nesta etapa. Expo EAS pode ser conectado quando o projeto definir o fluxo de release mobile.
-- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) nos Pull Requests do próprio repositório e nos pushes para `main`, sendo pulado em PRs de fork e no push de `development`. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; o PR precisa passar pelo gate antes do merge, e os outros checks são executados novamente sobre o commit integrado em `development`. O job depende de `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o Quality Gate; uma reprovação, inclusive cobertura de código novo abaixo de 80%, falha o CI. `sonar.coverage.exclusions` remove infraestrutura de banco/Redis e telas do app, que não possuem teste unitário.
+- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) nos Pull Requests do próprio repositório e nos pushes para `main`, sendo pulado em PRs de fork e no push de `development`. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; o PR precisa passar pelo gate antes do merge, e os outros checks são executados novamente sobre o commit integrado em `development`. O job depende de `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o Quality Gate; uma reprovação, inclusive cobertura de código novo abaixo de 80%, falha o CI. `sonar.coverage.exclusions` permanece restrito a tipos/configurações, ao cliente Redis e a telas do app; `PrismaService` é medido pelos testes unitários de configuração do pool.
 
 ---
 
@@ -551,11 +569,13 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ### 11. Conexão de Banco de Dados Remota / Supabase (`PrismaService.ts`)
 
-* **Configuração de Pool Resiliente**:
-  * O `pg.Pool` detecta conexões remotas (URLs contendo `supabase` ou `pooler.supabase.com`, ou ambiente de produção) e ativa automaticamente SSL com `{ rejectUnauthorized: false }`.
+* **Configuração de Pool Resiliente e TLS verificado**:
+  * O `pg.Pool` recebe a connection string sem sobrescrever as opções TLS. Em Render, a `DATABASE_URL` usa `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`; o parser do `pg` carrega a CA do Supabase e mantém a validação do certificado e do hostname ativa.
+  * O certificado é cadastrado como Secret File `supabase-ca.crt` no Render e não é armazenado no repositório. Extensões de certificado também são ignoradas por Git e Docker.
+  * O PostgreSQL local continua usando sua URL sem parâmetros SSL. Não use `rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0` ou `sslmode=disable` para contornar falhas de certificado.
   * `connectionTimeoutMillis` aumentado para `15000` (15 segundos) para suportar latência e handshakes TLS de instâncias em nuvem.
   * Registro de listener `pool.on('error')` para tratar encerramentos de conexões ociosas (idle) por parte do pooler do Supabase sem derrubar a aplicação.
-  * Recomenda-se utilizar a URL do **Connection Pooler (Supavisor)** do Supabase (porta `5432` Session ou `6543` Transaction com `?sslmode=require`) para compatibilidade com redes locais IPv4.
+  * Recomenda-se utilizar a URL do **Session Pooler (Supavisor)** do Supabase, porta `5432`, para compatibilidade com redes IPv4 do Render.
 
 ---
 
@@ -849,4 +869,50 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Suíte de Testes Automatizados**:
   * [`apps/server/test/config/storageConfig.spec.ts`](apps/server/test/config/storageConfig.spec.ts): Valida o carregamento dos provedores `docker`, `supabase` e `custom`, bem como sobreposição de endpoints, chaves e buckets.
 
+
+
+### 20. Histórico de doses no cadastro de animais (10/10/2026)
+
+- A tela envia as listas de V10, antirrábica e vermífugo, preservando ordem, status sim/nao e data DD/MM/AAAA.
+- A migração 20261010120000_add_animal_doses adiciona três colunas JSONB em tb_animals, com listas vazias para cadastros antigos e restrição de formato array; nenhum histórico é inferido dos indicadores antigos.
+- POST /animals e PATCH /animals/management/:id validam até 100 doses por lista, datas reais obrigatórias para doses aplicadas e ausência de data para doses não aplicadas. Campos omitidos no PATCH são preservados; [] limpa a lista.
+- As listas são retornadas apenas pela gestão autenticada, mantendo a autorização existente e a projeção pública.
+- O adaptador do formulário inclui os registros legados de primeira/segunda dose quando as listas não existem.
+- Aplicação: configurar DIRECT_URL para o PostgreSQL de destino e executar npm run prisma:migrate:deploy --workspace=apps/server; regenerar o cliente Prisma.
+
+### 21. Banco compartilhado de desenvolvimento
+
+- Configuração da equipe documentada em docs/BANCO_COMPARTILHADO.md. DATABASE_URL seleciona o banco; DIRECT_URL é destinada a migrations, com fallback para DATABASE_URL quando ausente.
+- PrismaService agora verifica certificados TLS de conexões remotas, incluindo URLs com sslmode=require; sslrootcert permite CA fornecida pelo provedor. Modos TLS inseguros são rejeitados. Isso substitui a orientação antiga de rejectUnauthorized:false da seção 11.
+- Pool limitado a cinco conexões por API. Falhas de conexões ociosas são registradas como evento sem detalhes sensíveis.
+- Novo db:check valida acesso sem divulgar credenciais; dev:local inicia PostgreSQL e Redis, enquanto dev continua iniciando somente Redis. Nenhum comando troca DATABASE_URL automaticamente.
+- Não foram criadas novas migrations nesta adaptação nem alteradas credenciais locais. O Supabase precisa ser provisionado e configurado pelo responsável; dados locais e fotos não são transferidos automaticamente.
+
+### 22. Ativação do Supabase de desenvolvimento
+
+- DATABASE_URL e DIRECT_URL do .env local foram configuradas para o Session pooler com sslmode=verify-full e sslrootcert apontando para a CA baixada do painel. Credenciais permanecem fora do Git.
+- Conexão TLS verificada com db:check; as cinco migrations existentes foram aplicadas ao banco remoto, incluindo histórico de doses.
+- Cada integrante precisa configurar sua conexão e o caminho local do certificado. Dados do PostgreSQL local e fotos não foram transferidos.
+
+### 23. Verificação da transferência local para Supabase
+
+- As dez tabelas de domínio foram verificadas em snapshot local somente leitura. O PostgreSQL local continha uma conta e nenhum animal, dose, foto, adoção, favorito, perfil ou evento.
+- A conta local já existia no Supabase pelo mesmo e-mail; a conta remota foi preservada sem duplicação. A operação foi concluída em transação sem novos registros. Nenhum dado local foi apagado.
+
+### 24. Cadastros de demonstração do abrigo
+
+- Foram inseridos e verificados em transação dez cães disponíveis: Barto, Beto, Bóris, Cícero, Cigana, Duque, Emílio, Glória, Safira e Yoshi. Nomes e disponibilidade vieram das pastas do ZIP fornecido.
+- Demais atributos são fictícios autorizados pelo usuário e identificados nas observações; nenhum histórico de doses foi inventado. Fotos não foram enviadas, pois o armazenamento configurado ainda é local. Nenhuma alteração de schema foi necessária.
+
+### 25. Fotos compartilhadas dos cães
+
+- Configurado Supabase Storage S3 no .env local, bucket público kapa-public e região us-east-1. Chaves permanecem fora do Git.
+- Dez fotos JPEG originais foram lidas diretamente do ZIP, enviadas com chaves únicas e vinculadas em tb_animal_photos após verificar o acesso público HTTP. Uma foto por cão de demonstração. Nenhuma alteração de schema.
+
+### 26. Ajuste de cobertura do SonarCloud e limpeza de código não utilizado (13/10/2026)
+
+- Removido `apps/server/src/database/connectionConfig.ts` e seu teste `connectionConfig.spec.ts`. O arquivo era código não utilizado remanescente do merge de `development`, uma vez que a validação TLS com CA é gerenciada diretamente no `PrismaService` (`createPostgresPoolConfig`) padronizado na branch de integração.
+- `apps/server/scripts/check-database.ts` foi modularizado para exportar `checkDatabase` e `run`, permitindo testes unitários dedicados em `apps/server/test/scripts/checkDatabase.spec.ts` cobrindo cenários de sucesso e falha.
+- Adicionado `apps/server/scripts/**` a `sonar.coverage.exclusions` em `sonar-project.properties`, alinhando os scripts utilitários de CLI com as diretrizes do monorepo.
+- Adicionados testes unitários em `apps/server/test/repositories/PostgresAnimalRepository.spec.ts` e atualizado o teste de persistência real em `databasePersistence.spec.ts` para exercitar mapeamento e persistência de doses na criação e atualização, elevando a cobertura de código novo acima da meta de 80% do Quality Gate.
 
