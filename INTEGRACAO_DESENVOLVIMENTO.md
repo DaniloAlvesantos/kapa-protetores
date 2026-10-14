@@ -916,3 +916,12 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 - Adicionado `apps/server/scripts/**` a `sonar.coverage.exclusions` em `sonar-project.properties`, alinhando os scripts utilitários de CLI com as diretrizes do monorepo.
 - Adicionados testes unitários em `apps/server/test/repositories/PostgresAnimalRepository.spec.ts` e atualizado o teste de persistência real em `databasePersistence.spec.ts` para exercitar mapeamento e persistência de doses na criação e atualização, elevando a cobertura de código novo acima da meta de 80% do Quality Gate.
 
+### 27. Resolução de falso positivo no Gitleaks (.gitleaksignore)
+
+- O step `Run Gitleaks` da pipeline de CI (`.github/workflows/quality.yml`) disparou um falso positivo na regra `generic-api-key` no commit histórico `39fcb2e` ao analisar a atribuição da chave secreta S3 via variável de ambiente em `apps/server/src/config/storageConfig.ts`.
+- Criado o arquivo `.gitleaksignore` na raiz do repositório contendo a fingerprint da ocorrência (`39fcb2e9b63fe67dc78d819f28437d7fb4ff5d39:apps/server/src/config/storageConfig.ts:generic-api-key:42`).
+- Adicionado o comentário inline `// gitleaks:allow` em `apps/server/src/config/storageConfig.ts` para evitar que futuras alterações acionem a regra indevidamente.
+- Verificado via execução local do Gitleaks no Docker (`v8.24.3`) com `--log-opts="--no-merges --first-parent origin/development..HEAD"`, garantindo aprovação com zero vazamentos e código de saída 0.
+
+
+

@@ -39,7 +39,7 @@ export function getStorageConfig(env: NodeJS.ProcessEnv = process.env): StorageC
       endpoint: env.S3_ENDPOINT || 'http://localhost:9000',
       region: env.S3_REGION || 'us-east-1',
       accessKeyId: env.S3_ACCESS_KEY || '',
-      secretAccessKey: env.S3_SECRET_KEY || '',
+      secretAccessKey: env.S3_SECRET_KEY || '', // gitleaks:allow
     };
   }
 
