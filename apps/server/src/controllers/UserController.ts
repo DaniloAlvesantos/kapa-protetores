@@ -23,10 +23,15 @@ import {
   NotFoundError,
   UnauthorizedError,
   ConflictError,
+  InternalServerError,
 } from '../errors';
+import type { UserPhotoService } from '../services/UserPhotoService';
 
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly userPhotoService?: UserPhotoService,
+  ) {}
 
   public countAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -342,6 +347,44 @@ export class UserController {
         success: true,
         message: 'Perfil atualizado com sucesso',
         data: updatedUser.toDTO(),
+      };
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public uploadAvatar = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const user = req.user;
+
+      if (!user) {
+        throw new UnauthorizedError('Você não está autenticado');
+      }
+
+      if (!req.file) {
+        throw new BadRequestError('Foto não enviada.');
+      }
+
+      if (!this.userPhotoService) {
+        throw new InternalServerError('Serviço de upload não configurado.');
+      }
+
+      const data = await this.userPhotoService.upload(user.sub, req.file);
+      const updatedUser = await this.userService.getById(user.sub);
+
+      const response: ApiResponse<{ avatarUrl: string; user: SharedUser }> = {
+        success: true,
+        message: 'Foto de perfil atualizada com sucesso.',
+        data: {
+          avatarUrl: data.avatarUrl,
+          user: updatedUser.toDTO(),
+        },
       };
 
       res.status(200).json(response);

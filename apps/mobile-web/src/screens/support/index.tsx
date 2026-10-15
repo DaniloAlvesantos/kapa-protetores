@@ -20,7 +20,8 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import { FAQ_SUPPORT_ITEMS } from '@kapa/shared'
+import { FAQ_SUPPORT_ITEMS } from '@kapa/shared';
+import { router } from 'expo-router';
 
 export function SupportScreen() {
   const [currentQuestion, setCurrentQuestion] = useState<number>();
@@ -51,23 +52,30 @@ export function SupportScreen() {
       </View>
 
       <View className="flex-row flex-wrap items-stretch gap-4">
-        <PrimaryCard className="p-4 gap-2 w-full md:flex-1 md:w-auto">
-          <View className="bg-orange-100 size-10 md:size-12 rounded-full flex items-center justify-center">
-            <QrCodeIcon
-              size={Platform.OS === 'web' ? 25 : 20}
-              color={palette.orangeDark}
-            />
-          </View>
-          <View>
-            <Text className="font-heading font-bold text-orange-dark text-lg md:text-xl">
-              Doar via PIX
-            </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir tela de doação via PIX"
+          onPress={() => router.push('/(protected)/(adopter)/pix')}
+          className="w-full md:flex-1 md:w-auto"
+        >
+          <PrimaryCard className="p-4 gap-2 w-full active:opacity-90">
+            <View className="bg-orange-100 size-10 md:size-12 rounded-full flex items-center justify-center">
+              <QrCodeIcon
+                size={Platform.OS === 'web' ? 25 : 20}
+                color={palette.orangeDark}
+              />
+            </View>
+            <View>
+              <Text className="font-heading font-bold text-orange-dark text-lg md:text-xl">
+                Doar via PIX
+              </Text>
 
-            <Text className="font-body text-ink-muted font-medium text-lg">
-              Ajude com qualquer valor
-            </Text>
-          </View>
-        </PrimaryCard>
+              <Text className="font-body text-ink-muted font-medium text-lg">
+                Ajude com qualquer valor
+              </Text>
+            </View>
+          </PrimaryCard>
+        </Pressable>
         <PrimaryCard className="p-4 gap-3 flex-1 min-w-[140px] justify-between">
           <View className="bg-blue-100 size-10 md:size-12 rounded-full flex items-center justify-center">
             <HandHeartIcon

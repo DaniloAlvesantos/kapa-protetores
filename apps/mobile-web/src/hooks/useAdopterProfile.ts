@@ -10,8 +10,8 @@ export const useAdopterProfile = () => {
 
   return useMutation({
     mutationFn: async (data: AdopterProfileFormDataType) => {
-      return apiRequest<AdopterProfile>('/adopter-profiles', {
-        method: 'POST',
+      return apiRequest<AdopterProfile>('/adopter-profiles/me', {
+        method: 'PUT',
         body: JSON.stringify(data),
       });
     },
@@ -22,6 +22,8 @@ export const useAdopterProfile = () => {
     },
   });
 };
+
+export const useSaveAdopterProfile = useAdopterProfile;
 
 export const useAdopterProfileMe = (enabled = true) => {
   return useQuery({

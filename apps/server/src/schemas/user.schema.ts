@@ -73,6 +73,12 @@ export const updateProfileSchema = z.object({
     .min(3, 'Nome de usuário deve ter no mínimo 3 caracteres')
     .max(50, 'Nome de usuário muito longo')
     .optional(),
+  email: z
+    .string()
+    .trim()
+    .email('E-mail inválido')
+    .toLowerCase()
+    .optional(),
   avatar: z
     .union([z.string().trim().url('URL do avatar inválida'), z.literal('')])
     .nullish()

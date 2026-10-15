@@ -21,6 +21,10 @@ export interface AdopterProfileFormsProps {
   onNext: VoidFunction;
   initialValues?: Partial<AdopterProfileFormDataType>;
   isSubmitting?: boolean;
+  onComplete?: VoidFunction;
+  completeTitle?: string;
+  completeDescription?: string;
+  completeButtonTitle?: string;
 }
 
 export const AdopterProfileForms = ({
@@ -30,6 +34,10 @@ export const AdopterProfileForms = ({
   onNext,
   initialValues,
   isSubmitting = false,
+  onComplete,
+  completeTitle,
+  completeDescription,
+  completeButtonTitle,
 }: AdopterProfileFormsProps) => {
   const {
     control,
@@ -38,6 +46,10 @@ export const AdopterProfileForms = ({
   } = useForm<AdopterProfileFormDataType>({
     resolver: zodResolver(adopterProfileSchema),
     defaultValues: initialValues,
+    values: initialValues as AdopterProfileFormDataType | undefined,
+    resetOptions: {
+      keepDirtyValues: true,
+    },
   });
 
   const totalSteps = adopterProfileFormsConfig.length;
@@ -52,17 +64,24 @@ export const AdopterProfileForms = ({
     return (
       <View className="flex-1 p-6 items-center justify-center">
         <Text className="font-heading-bold text-2xl text-ink text-center mb-2">
-          Perfil Concluído!
+          {completeTitle ?? 'Perfil Concluído!'}
         </Text>
         <Text className="font-body text-sm text-ink-muted text-center mb-4">
-          Suas preferências foram registradas com sucesso.
+          {completeDescription ??
+            'Suas preferências foram registradas com sucesso.'}
         </Text>
         <PrimaryButton
           size="sm"
           className="md:w-1/2"
-          onPress={() => router.replace('/')}
+          onPress={() => {
+            if (onComplete) {
+              onComplete();
+            } else {
+              router.replace('/');
+            }
+          }}
         >
-          Ir para home
+          {completeButtonTitle ?? 'Ir para home'}
         </PrimaryButton>
       </View>
     );

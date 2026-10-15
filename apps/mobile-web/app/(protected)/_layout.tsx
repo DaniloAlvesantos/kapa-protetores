@@ -23,6 +23,8 @@ export default function ProtectedLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="manage-activities" />
       <Stack.Screen name="adopter-profile" />
+      <Stack.Screen name="(adopter)/pix" />
+      <Stack.Screen name="(adopter)/edit-profile" />
     </Stack>
   );
 }

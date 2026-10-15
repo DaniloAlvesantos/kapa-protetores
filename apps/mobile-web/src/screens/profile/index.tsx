@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { colors, palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
 import { Image, ScrollView, View, Text } from 'react-native';
+import { router } from 'expo-router';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
 import { FavoritedAnimal, UserRoleEnum } from '@kapa/shared';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -78,6 +79,7 @@ export function ProfileScreen() {
           label="Editar Perfil"
           icon={UserIcon}
           iconColor={palette.orangeDark}
+          onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
         />
         <PrimaryMenuItem
           label="Minhas Doações"

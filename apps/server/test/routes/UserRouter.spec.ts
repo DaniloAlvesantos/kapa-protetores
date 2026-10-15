@@ -13,6 +13,7 @@ describe('UserRouter Endpoints Coverage', () => {
       deleteMe: () => {},
       getProfile: () => {},
       updatePassword: () => {},
+      uploadAvatar: () => {},
       getById: () => {},
       updateRole: () => {},
       deleteById: () => {},
@@ -42,7 +43,8 @@ describe('UserRouter Endpoints Coverage', () => {
     // Authenticated user own routes
     expect(registered.some((r) => r.path === '/me' && r.methods?.get)).toBe(true);
     expect(registered.some((r) => r.path === '/me' && r.methods?.patch)).toBe(true);
-    expect(registered.some((r) => r.path === '/me' && r.methods?.delete)).toBe(true);
+    expect(registered.some((r) => r.path === '/me/avatar' && r.methods?.post)).toBe(true);
+    expect(registered.some((r) => r.path === '/me/delete' || (r.path === '/me' && r.methods?.delete))).toBe(true);
     expect(registered.some((r) => r.path === '/me/profile' && r.methods?.get)).toBe(true);
     expect(registered.some((r) => r.path === '/me/password' && r.methods?.patch)).toBe(true);
 

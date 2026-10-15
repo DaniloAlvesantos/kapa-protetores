@@ -33,6 +33,7 @@ export interface AuthContextProps {
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => void;
   handleGoogleLogin: (idToken: string) => Promise<void>;
+  updateUserData: (updatedUser: User) => Promise<void>;
 }
 
 const AUTH_STORAGE_TOKEN_KEY = '@kapa:auth-token';
@@ -263,6 +264,11 @@ export function AuthProvider({ children }: AuthProviderProp) {
     loadStorageState();
   }, [checkAdopterProfile]);
 
+  const updateUserData = useCallback(async (updatedUser: User) => {
+    setUser(updatedUser);
+    await genericStorage.set<User>(AUTH_STORAGE_DATA_KEY, updatedUser);
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       isLogged,
@@ -276,6 +282,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
       signUp,
       signOut,
       handleGoogleLogin,
+      updateUserData,
     }),
     [
       isLogged,
@@ -289,6 +296,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
       signUp,
       signOut,
       handleGoogleLogin,
+      updateUserData,
     ],
   );
 
