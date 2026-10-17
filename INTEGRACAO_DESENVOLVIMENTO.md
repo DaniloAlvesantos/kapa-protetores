@@ -942,6 +942,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 - O botão de coração da listagem e da tela de detalhes agora adiciona ou remove o pet dos favoritos da pessoa autenticada. A preferência é persistida em `tb_favorites`, já existente no banco.
 - A rota autenticada `POST /api/favorites` alterna o favorito do adotante para um animal, validando a existência do pet antes da alteração.
 - O perfil deixou de usar dados fictícios e passou a mostrar os favoritos reais retornados por `GET /api/users/me/profile`, inclusive com a contagem atualizada.
+- Caso o token JWT armazenado em cache referencie um usuário que não existe mais no banco de dados e `GET /api/users/me` ou `GET /api/users/me/profile` retorne `404 Not Found`, o interceptor em `kapaService.ts` (`shouldClearSession`) invalida a sessão obsoleta automaticamente e redireciona para `/signIn`.
 
 ### 31. Tela de Doação via PIX (`/(protected)/(adopter)/pix`)
 
