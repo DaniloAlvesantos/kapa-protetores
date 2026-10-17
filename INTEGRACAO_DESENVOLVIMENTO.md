@@ -918,7 +918,32 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ### 27. Resolução de falso positivo no Gitleaks (.gitleaksignore)
 
-### 28. Tela de Doação via PIX (`/(protected)/(adopter)/pix`)
+- O step `Run Gitleaks` da pipeline de CI (`.github/workflows/quality.yml`) disparou um falso positivo na regra `generic-api-key` no commit histórico `39fcb2e` ao analisar a atribuição da chave secreta S3 via variável de ambiente em `apps/server/src/config/storageConfig.ts`.
+- Criado o arquivo `.gitleaksignore` na raiz do repositório contendo a fingerprint da ocorrência (`39fcb2e9b63fe67dc78d819f28437d7fb4ff5d39:apps/server/src/config/storageConfig.ts:generic-api-key:42`).
+- Adicionado o comentário inline `// gitleaks:allow` em `apps/server/src/config/storageConfig.ts` para evitar que futuras alterações acionem a regra indevidamente.
+- Verificado via execução local do Gitleaks no Docker (`v8.24.3`) com `--log-opts="--no-merges --first-parent origin/development..HEAD"`, garantindo aprovação com zero vazamentos e código de saída 0.
+
+### 28. Detalhes e solicitação de adoção
+
+- A listagem de adoção agora abre uma página protegida de detalhes para cada animal disponível em `/adopet/:id`.
+- A página mostra fotos, características, descrição e resumo de cuidados do pet utilizando os dados já retornados por `GET /api/animals`; não houve alteração de banco ou de API.
+- O CTA abre uma confirmação e envia a solicitação autenticada para `POST /api/adoptions`. A API cria o pedido com status `pending`, usando o usuário autenticado e sem mudanças de schema.
+- A API impede novo pedido ativo do mesmo adotante para o mesmo animal e recusa pedidos quando o animal não estiver mais disponível.
+- O front-end inclui a ficha em `/adopet/:id/application`, com dados de contato, moradia, outros animais e responsabilidades. O conteúdo é validado e persistido junto à solicitação para análise do abrigo.
+
+### 29. Acompanhamento e análise de solicitações de adoção
+
+- A solicitação armazena a ficha preenchida em `applicationData` (`JSONB`) na tabela `tb_adoptions`, criada pela migration `20261016100000_add_adoption_application_data`.
+- O abrigo acessa as fichas em `/gestao/solicitacoes`, podendo aprová-las ou recusá-las. A API protege a listagem e a atualização de status para o papel `admin`.
+- O adotante encontra o atalho **Minhas solicitações** no próprio perfil. A tela consulta somente as solicitações daquele usuário, por `GET /api/adoptions/mine`, e apresenta o pet, a data de envio e o status atual (em análise, em conversa, aprovada, não aprovada ou cancelada).
+
+### 30. Favoritos persistentes
+
+- O botão de coração da listagem e da tela de detalhes agora adiciona ou remove o pet dos favoritos da pessoa autenticada. A preferência é persistida em `tb_favorites`, já existente no banco.
+- A rota autenticada `POST /api/favorites` alterna o favorito do adotante para um animal, validando a existência do pet antes da alteração.
+- O perfil deixou de usar dados fictícios e passou a mostrar os favoritos reais retornados por `GET /api/users/me/profile`, inclusive com a contagem atualizada.
+
+### 31. Tela de Doação via PIX (`/(protected)/(adopter)/pix`)
 
 * **Estrutura de Rota e Separação de Responsabilidade**:
   * Rota registrada em [`apps/mobile-web/app/(protected)/(adopter)/pix.tsx`](apps/mobile-web/app/(protected)/(adopter)/pix.tsx) como casca fina de navegação delegando a renderização para [`PixScreen`](apps/mobile-web/src/screens/pix/index.tsx).
@@ -933,7 +958,8 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     * Apresentação clara da Razão Social (Associação Kapa Protetores de Animais), CNPJ oficial e instituição financeira para conferência no app bancário antes de autorizar a transferência.
 * **Ponto de Entrada a partir da Tela de Apoio**:
   * O card "Doar via PIX" em [`apps/mobile-web/src/screens/support/index.tsx`](apps/mobile-web/src/screens/support/index.tsx) foi tornado interativo com `Pressable`, navegando diretamente para a rota `/(protected)/(adopter)/pix`.
-### 29. Edição Completa do Perfil de Usuário (`/(protected)/(adopter)/edit-profile`)
+
+### 32. Edição Completa do Perfil de Usuário (`/(protected)/(adopter)/edit-profile`)
 
 * **Estrutura de Rota e Layout**:
   * Rota registrada em [`apps/mobile-web/app/(protected)/(adopter)/edit-profile.tsx`](apps/mobile-web/app/(protected)/(adopter)/edit-profile.tsx) conectada diretamente ao componente [`EditProfileScreen`](apps/mobile-web/src/screens/editProfile/index.tsx).
