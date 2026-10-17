@@ -19,6 +19,7 @@ import {
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { router } from 'expo-router';
 
 const DEFAULT_PET_PHOTO =
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
@@ -182,6 +183,12 @@ export function AdoptScreen() {
               characteristics={formatPetCharacteristics(animal)}
               isFavorited={favoritedIds.has(animal.id)}
               onToggleFavorite={() => handleToggleFavorite(animal.id)}
+              onPress={() =>
+                router.push({
+                  pathname: '/adopet/[id]',
+                  params: { id: animal.id },
+                })
+              }
             />
           ))}
         </View>
