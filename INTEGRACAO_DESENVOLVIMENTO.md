@@ -855,19 +855,11 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ---
 
-### 25. Armazenamento de Objetos Flexível (Chainguard MinIO ou Supabase Storage via .env)
+### 25. Armazenamento de Objetos e Banco de Dados via Supabase
 
-* **Seleção de Provedor por Variável de Ambiente (`STORAGE_PROVIDER`)**:
-  * Implementado [`getStorageConfig`](apps/server/src/config/storageConfig.ts) para permitir que o desenvolvedor escolha facilmente o backend de armazenamento através de `STORAGE_PROVIDER` no `.env`:
-    * `STORAGE_PROVIDER=docker`: Utiliza MinIO local via Docker Compose (porta 9000).
-    * `STORAGE_PROVIDER=supabase`: Utiliza Supabase Storage com compatibilidade S3 (`storage.supabase.co/storage/v1/s3` e URLs públicas via `supabase.co/storage/v1/object/public`).
-    * `STORAGE_PROVIDER=custom` (ou variáveis `S3_*` diretas): Utilizado para deploys na nuvem (AWS S3, Cloudflare R2, Render).
-* **Imagens Seguras do MinIO (Docker)**:
-  * A configuração do Docker Compose em [`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml) utiliza as imagens públicas da Chainguard:
-    * `storage`: `cgr.dev/chainguard/minio:latest`
-    * `storage-init`: `cgr.dev/chainguard/minio-client:latest-dev` (com `/bin/sh` e criação automática do bucket `kapa-public` com acesso `download`).
-* **Suíte de Testes Automatizados**:
-  * [`apps/server/test/config/storageConfig.spec.ts`](apps/server/test/config/storageConfig.spec.ts): Valida o carregamento dos provedores `docker`, `supabase` e `custom`, bem como sobreposição de endpoints, chaves e buckets.
+* **Configuração Direta do Supabase Storage (S3 Compatível)**:
+  * Removido `apps/server/src/config/storageConfig.ts`; [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) lê diretamente as variáveis `SUPABASE_S3_*` (com fallback para `S3_*` em ambientes de deploy) para instanciar [`UserPhotoService`](apps/server/src/services/UserPhotoService.ts) e [`AnimalPhotoService`](apps/server/src/services/AnimalPhotoService.ts).
+  * Tanto o banco de dados PostgreSQL (`DATABASE_URL` / `DIRECT_URL`) quanto o armazenamento de objetos S3 utilizam o Supabase como fonte padrão em [`apps/server/.env.example`](apps/server/.env.example).
 
 
 
