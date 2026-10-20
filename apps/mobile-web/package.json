@@ -63,7 +63,10 @@
     "build:web": "expo export -p web",
     "lint": "expo lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:maestro": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/login-smoke.yaml",
+    "test:maestro:web": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/web-smoke.yaml",
+    "maestro:studio": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro studio"
   },
   "private": true
 }

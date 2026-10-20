@@ -984,3 +984,12 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Suíte de Testes Automatizados**:
   * [`apps/mobile-web/test/screens/EditProfileScreen.spec.tsx`](apps/mobile-web/test/screens/EditProfileScreen.spec.tsx): valida renderização dos campos de dados pessoais, foto de perfil, validação de comprimento de nome e formato de e-mail, atalho de preferências de adoção e envio com atualização do contexto de autenticação.
   * [`apps/server/test/routes/UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts), [`UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts), [`UserService.spec.ts`](apps/server/test/services/UserService.spec.ts) e [`schemas.spec.ts`](apps/server/test/validation/schemas.spec.ts) validados com 100% de aprovação.
+
+### 33. Testes E2E com Maestro (`apps/mobile-web/.maestro`)
+
+* **Estrutura e Configuração**:
+  * Configuração base em [`apps/mobile-web/.maestro/config.yaml`](apps/mobile-web/.maestro/config.yaml) apontando para `flows/*`.
+  * Fluxo mobile Android em [`apps/mobile-web/.maestro/flows/login-smoke.yaml`](apps/mobile-web/.maestro/flows/login-smoke.yaml) (`appId: edu.fatec.kapaprotetores.android`).
+  * Fluxo Web em [`apps/mobile-web/.maestro/flows/web-smoke.yaml`](apps/mobile-web/.maestro/flows/web-smoke.yaml) (`url: http://localhost:8081/signIn`).
+  * Scripts adicionados em [`package.json`](package.json) e [`apps/mobile-web/package.json`](apps/mobile-web/package.json): `npm run test:maestro` (Android), `npm run test:maestro:web` (Web) e `npm run maestro:studio --workspace=@kapa/mobile-web`.
+  * Padronização do ciclo de vida do JWT (`ACCESS_TOKEN_TTL_SECONDS`) para **7 dias (`604800` segundos)** em [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) e [`apps/server/.env.example`](apps/server/.env.example), alinhado com [`apps/server/src/utils/Jwt.ts`](apps/server/src/utils/Jwt.ts).

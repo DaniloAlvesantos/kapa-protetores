@@ -1,0 +1,13 @@
+appId: edu.fatec.kapaprotetores.android
+name: Login Screen Smoke Test (Android)
+tags:
+  - smoke
+  - mobile
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Bem-vindo de volta"
+- assertVisible: "Entre para acompanhar suas adoções e favoritos."
+- tapOn: "Entrar"
+- assertVisible: "Formato de e-mail inválido"
+- assertVisible: "A senha é obrigatória"

@@ -46,7 +46,7 @@ const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
   process.env.JWT_ISSUER ?? 'kapa-api',
   process.env.JWT_AUDIENCE ?? 'kapa-app',
-  Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
+  Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 604800,
 );
 const authMiddleware = new AuthMiddleware(jwtService);
 

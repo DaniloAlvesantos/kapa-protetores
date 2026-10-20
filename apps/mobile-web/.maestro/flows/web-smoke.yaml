@@ -1,0 +1,20 @@
+url: http://localhost:8081/signIn
+name: Login Screen Smoke Test (Web)
+tags:
+  - smoke
+  - web
+---
+- launchApp
+- assertVisible: "Bem-vindo de volta"
+- assertVisible: "Entre para acompanhar suas adoções e favoritos."
+- scrollUntilVisible:
+    centerElement: true # element be amost in the middle screen
+    element: "Entrar"
+    direction: DOWN
+- tapOn: "Entrar"
+- assertVisible: "A senha é obrigatória"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Formato de e-mail inválido"
+    direction: UP
+- assertVisible: "Formato de e-mail inválido"
