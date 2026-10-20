@@ -1,6 +1,5 @@
 import { ApiRouter } from './ApiRouter';
 import { prisma } from '../database/PrismaService';
-import { getStorageConfig } from '../config/storageConfig';
 import { PostgresAnimalRepository } from '../repositories/PostgresAnimalRepository';
 import { UserRepository } from '../repositories/UserRepository';
 import { AnimalService } from '../services/AnimalService';
@@ -55,15 +54,31 @@ const healthController = new HealthController(healthService, redisService);
 const healthRouter = new HealthRouter(healthController);
 
 const userRepository = new UserRepository(prisma);
-const storageConfig = getStorageConfig();
+const s3Bucket =
+  process.env.SUPABASE_S3_BUCKET || process.env.S3_BUCKET || 'kapa-public';
+const s3PublicUrl =
+  process.env.SUPABASE_S3_PUBLIC_URL ||
+  process.env.S3_PUBLIC_URL ||
+  'https://mjpwurytnjbqrvdrsivy.supabase.co/storage/v1/object/public';
+const s3Endpoint =
+  process.env.SUPABASE_S3_ENDPOINT ||
+  process.env.S3_ENDPOINT ||
+  'https://mjpwurytnjbqrvdrsivy.storage.supabase.co/storage/v1/s3';
+const s3Region =
+  process.env.SUPABASE_S3_REGION || process.env.S3_REGION || 'us-east-1';
+const s3AccessKey =
+  process.env.SUPABASE_S3_ACCESS_KEY || process.env.S3_ACCESS_KEY || '';
+const s3SecretKey =
+  process.env.SUPABASE_S3_SECRET_KEY || process.env.S3_SECRET_KEY || ''; // gitleaks:allow
+
 const userPhotoService = new UserPhotoService(
   prisma,
-  storageConfig.bucket,
-  storageConfig.publicUrl,
-  storageConfig.endpoint,
-  storageConfig.region,
-  storageConfig.accessKeyId,
-  storageConfig.secretAccessKey,
+  s3Bucket,
+  s3PublicUrl,
+  s3Endpoint,
+  s3Region,
+  s3AccessKey,
+  s3SecretKey,
 );
 
 const userService = new UserService(userRepository);
@@ -77,12 +92,12 @@ const animalRepository = new PostgresAnimalRepository(prisma);
 const animalService = new AnimalService(animalRepository);
 const animalPhotoService = new AnimalPhotoService(
   prisma,
-  storageConfig.bucket,
-  storageConfig.publicUrl,
-  storageConfig.endpoint,
-  storageConfig.region,
-  storageConfig.accessKeyId,
-  storageConfig.secretAccessKey,
+  s3Bucket,
+  s3PublicUrl,
+  s3Endpoint,
+  s3Region,
+  s3AccessKey,
+  s3SecretKey,
 );
 
 const animalsRouter = new AnimalsRouter(
