@@ -17,6 +17,16 @@ jest.mock('@/hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('@/hooks/useUserProfile', () => ({
+  useUserProfile: () => ({
+    data: { favorites: [], counts: { favorites: 0, adoptions: 0, events: 0 } },
+  }),
+}));
+
+jest.mock('@/hooks/useFavorites', () => ({
+  useToggleFavorite: () => ({ mutate: jest.fn() }),
+}));
+
 const mockedUseAdoptAnimals = jest.mocked(useAdoptAnimals);
 const mockedUseAuth = jest.mocked(useAuth);
 

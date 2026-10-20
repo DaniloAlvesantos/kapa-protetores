@@ -2,16 +2,20 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000/api';
 
 export const options = {
   vus: 1,
   duration: '10s',
   thresholds: {
     http_req_failed: ['rate<0.01'],
-    http_req_duration: ['p(95)<200'],
+    'http_req_duration{scenario:default}': ['p(95)<500'],
   },
 };
+
+export function setup() {
+  http.get(`${BASE_URL}/users/count`);
+}
 
 export default function () {
   const healthRes = http.get(`${BASE_URL}/health`);

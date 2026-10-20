@@ -6,6 +6,7 @@ Performance and load testing scripts for the Kapa API using [Grafana k6](https:/
 
 - **`smoke-test.js`**: Quick sanity check (1 VU, 10s) ensuring core endpoints are responding.
 - **`load-test.js`**: Staged load test (ramping to 20 VUs over 60s) assessing throughput and p95 latency.
+- **`animals.js`**: Authenticated load test on `/animals` endpoint (ramping to 20 VUs over 60s).
 
 ## Prerequisites
 
@@ -22,6 +23,9 @@ npm run test:k6:smoke
 
 # Run load test via Docker Compose
 npm run test:k6:load
+
+# Run animals load test via Docker Compose
+npm run test:k6:animals
 ```
 
 Or using Docker Compose directly:

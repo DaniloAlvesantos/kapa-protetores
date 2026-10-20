@@ -10,6 +10,7 @@ import {
   NotFoundError,
   UnauthorizedError,
   InternalServerError,
+  ConflictError,
   BaseError,
   ServiceError,
 } from '../errors';
@@ -291,6 +292,7 @@ export class UserService {
     id: string,
     input: {
       username?: string;
+      email?: string;
       avatar?: string | null;
       latitude?: number | null;
       longitude?: number | null;
@@ -301,6 +303,15 @@ export class UserService {
 
     if (!user) {
       throw new NotFoundError(`Usuário não encontrado`);
+    }
+
+    if (input.email !== undefined && input.email !== user.getEmail().toString()) {
+      const safeEmail = Email.create(input.email);
+      const existing = await this.repository.findByEmail(safeEmail);
+      if (existing && existing.getId().toString() !== user.getId().toString()) {
+        throw new ConflictError('Já existe um usuário cadastrado com este e-mail');
+      }
+      user.setEmail(safeEmail);
     }
 
     if (input.username !== undefined) {

@@ -14,9 +14,20 @@ type Props = {
   uri?: string;
   onChange: (uri: string) => void;
   erro?: string;
+  label?: string;
+  modalTitle?: string;
+  accessibilityLabel?: string;
 };
 
-export function FotoPicker({ className, uri, onChange, erro }: Props) {
+export function FotoPicker({
+  className,
+  uri,
+  onChange,
+  erro,
+  label = 'Adicionar foto (opcional)',
+  modalTitle = 'Foto',
+  accessibilityLabel = 'Adicionar ou alterar foto',
+}: Props) {
   const [aberto, setAberto] = useState(false);
   const [aviso, setAviso] = useState<string>();
 
@@ -67,7 +78,7 @@ export function FotoPicker({ className, uri, onChange, erro }: Props) {
         onPress={() => setAberto(true)}
         className="self-center active:opacity-85"
         accessibilityRole="button"
-        accessibilityLabel="Adicionar ou alterar foto do animal"
+        accessibilityLabel={accessibilityLabel}
       >
         {uri ? (
           <Image
@@ -84,7 +95,7 @@ export function FotoPicker({ className, uri, onChange, erro }: Props) {
           >
             <Text className="text-orange text-4xl leading-10 font-light">+</Text>
             <Text className="w-full px-3 text-center text-orange-dark text-xs leading-4 font-bold">
-              Adicionar foto (opcional)
+              {label}
             </Text>
           </View>
         )}
@@ -113,7 +124,7 @@ export function FotoPicker({ className, uri, onChange, erro }: Props) {
           />
           <View className="bg-white rounded-[20px] p-5 gap-2.5">
             <Text className="text-ink text-lg font-extrabold">
-              Foto do animal
+              {modalTitle}
             </Text>
             <Text className="text-ink-muted text-sm mb-1.5">
               Escolha de onde vem a imagem.

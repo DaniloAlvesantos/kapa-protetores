@@ -12,6 +12,7 @@
     "clsx": "^2.1.1",
     "expo": "~57.0.23",
     "expo-auth-session": "~57.0.12",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.1",
     "expo-crypto": "~57.0.3",
     "expo-font": "~57.0.2",
@@ -62,7 +63,10 @@
     "build:web": "expo export -p web",
     "lint": "expo lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:maestro": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/login-smoke.yaml",
+    "test:maestro:web": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/web-smoke.yaml",
+    "maestro:studio": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro studio"
   },
   "private": true
 }

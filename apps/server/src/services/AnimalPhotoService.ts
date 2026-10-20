@@ -3,7 +3,7 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client
 import { PrismaClient } from '@prisma/client';
 import { BadRequestError, NotFoundError } from '../errors';
 
-const allowedImages = {
+export const allowedImages = {
   'image/jpeg': { extension: 'jpg', matches: (data: Buffer) => data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff },
   'image/png': { extension: 'png', matches: (data: Buffer) => data.length >= 8 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
   'image/webp': { extension: 'webp', matches: (data: Buffer) => data.length >= 12 && data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WEBP' },
@@ -16,7 +16,7 @@ export function isAllowedImageContent(data: Buffer, mimeType: string): mimeType 
   return Boolean(image?.matches(data));
 }
 
-function detectImageContent(data: Buffer): AllowedImageMime | undefined {
+export function detectImageContent(data: Buffer): AllowedImageMime | undefined {
   return (Object.keys(allowedImages) as AllowedImageMime[])
     .find((mimeType) => allowedImages[mimeType].matches(data));
 }
@@ -66,7 +66,10 @@ export class AnimalPhotoService {
       CacheControl: 'public, max-age=31536000, immutable',
     }));
 
-    const photoUrl = `${this.publicUrl.replace(/\/$/, '')}/${this.bucket}/${key}`;
+    const base = this.publicUrl.replace(/\/+$/, '');
+    const photoUrl = base.endsWith(`/${this.bucket}`)
+      ? `${base}/${key}`
+      : `${base}/${this.bucket}/${key}`;
     try {
       const photo = await this.prisma.animalPhotos.create({
         data: { animal_id: animalId, photo_url: photoUrl },

@@ -9,24 +9,41 @@ const publicAuthenticationPaths = new Set([
   '/auth/google',
 ]);
 
+const currentUserSessionPaths = new Set(['/users/me', '/users/me/profile']);
+
 let onUnauthorizedCallback: (() => void) | null = null;
 
 export function setOnUnauthorizedCallback(cb: (() => void) | null): void {
   onUnauthorizedCallback = cb;
 }
 
-function isPublicAuthenticationRequest(requestUrl: string | undefined): boolean {
-  if (!requestUrl) return false;
+function normalizeRequestPath(requestUrl: string | undefined): string | null {
+  if (!requestUrl) return null;
 
   try {
     const pathname = new URL(requestUrl, 'https://kapa.local').pathname;
-    const normalizedPath = pathname.startsWith('/api/')
+    return pathname.startsWith('/api/')
       ? pathname.slice('/api'.length)
       : pathname;
-    return publicAuthenticationPaths.has(normalizedPath);
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isPublicAuthenticationRequest(
+  requestUrl: string | undefined,
+): boolean {
+  const normalizedPath = normalizeRequestPath(requestUrl);
+  return (
+    normalizedPath !== null && publicAuthenticationPaths.has(normalizedPath)
+  );
+}
+
+function isCurrentUserSessionRequest(requestUrl: string | undefined): boolean {
+  const normalizedPath = normalizeRequestPath(requestUrl);
+  return (
+    normalizedPath !== null && currentUserSessionPaths.has(normalizedPath)
+  );
 }
 
 export function shouldClearSession(
@@ -35,6 +52,10 @@ export function shouldClearSession(
   requestUrl: string | undefined,
 ): boolean {
   if (isPublicAuthenticationRequest(requestUrl)) return false;
+
+  if (status === 404 && isCurrentUserSessionRequest(requestUrl)) {
+    return true;
+  }
 
   return (
     status === 401 ||

@@ -13,6 +13,7 @@ export const palette = {
   line: '#F0E4D4',
   card: '#FFFFFF',
   dangerSoft: '#FDECEA',
+  successSoft: '#EBF5F0',
 } as const;
 
 export const colors = {

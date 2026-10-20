@@ -1,12 +1,10 @@
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -17,6 +15,7 @@ import {
 } from 'phosphor-react-native';
 import type { Animal, TriageStatus } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { PhotoCarousel } from '@/components/carousels/photo';
 import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { palette } from '@/theme';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -53,37 +52,17 @@ function HealthItem({ label, value }: { label: string; value: string }) {
 }
 
 function PetPhotos({ animal }: { animal: Animal }) {
-  const { width } = useWindowDimensions();
-  const photos = animal.photos?.map((photo) => photo.photoUrl) ?? [];
-  const imageUrls = photos.length > 0 ? photos : [DEFAULT_PET_PHOTO];
-  const imageWidth = Math.min(Math.max(width - 40, 280), 1140);
+  const photos =
+    animal.photos && animal.photos.length > 0
+      ? animal.photos.map((photo) => ({
+          id: photo.id,
+          photoUrl: photo.photoUrl,
+        }))
+      : [{ id: 'default', photoUrl: DEFAULT_PET_PHOTO }];
 
   return (
-    <View className="gap-3">
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        accessibilityRole="adjustable"
-        accessibilityLabel={`Fotos de ${animal.name}`}
-        className="rounded-2xl bg-peach"
-      >
-        {imageUrls.map((uri, index) => (
-          <Image
-            key={`${uri}-${index}`}
-            source={{ uri }}
-            accessibilityLabel={`Foto ${index + 1} de ${animal.name}`}
-            resizeMode="cover"
-            className="h-72 md:h-96"
-            style={{ width: imageWidth }}
-          />
-        ))}
-      </ScrollView>
-      {imageUrls.length > 1 ? (
-        <Text className="font-body text-xs text-ink-muted text-center">
-          Deslize para ver mais fotos
-        </Text>
-      ) : null}
+    <View className="overflow-hidden rounded-2xl">
+      <PhotoCarousel photos={photos} dots />
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { UserController } from '../controllers/UserController';
 import { rulesHandler } from '../middlewares/rulesHandler';
 import { AuthMiddleware } from '../middlewares/AuthMiddleware';
@@ -14,6 +15,11 @@ export class UserRouter {
   }
 
   private initRoutes(): void {
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    });
+
     this.router.get('/count', this.controller.countAll);
     this.router.get(
       '/all',
@@ -35,6 +41,15 @@ export class UserRouter {
       rulesHandler('user:update:own'),
       this.controller.updateProfile,
     );
+    if (this.controller.uploadAvatar) {
+      this.router.post(
+        '/me/avatar',
+        this.authController.authenticate,
+        rulesHandler('user:update:own'),
+        upload.single('avatar'),
+        this.controller.uploadAvatar,
+      );
+    }
     this.router.delete(
       '/me',
       this.authController.authenticate,

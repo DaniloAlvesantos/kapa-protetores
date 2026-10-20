@@ -54,7 +54,7 @@ services:
     volumes:
       - ./k6:/scripts
     environment:
-      - BASE_URL=http://localhost:4000
+      - BASE_URL=http://localhost:4000/api
 
 volumes:
   redis_data:

@@ -22,6 +22,10 @@ jest.mock('@/hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('@/hooks/useAdoptions', () => ({
+  useCreateAdoption: () => ({ mutateAsync: jest.fn(), isPending: false }),
+}));
+
 const mockedUseAdoptAnimals = jest.mocked(useAdoptAnimals);
 const mockedUseAuth = jest.mocked(useAuth);
 
@@ -81,7 +85,7 @@ describe('AdoptionApplicationScreen', () => {
   it('mostra mensagens quando a ficha está incompleta', async () => {
     const { getByText } = await render(<AdoptionApplicationScreen />);
 
-    fireEvent.press(getByText('Concluir ficha'));
+    fireEvent.press(getByText('Enviar ficha'));
 
     await waitFor(() => {
       expect(getByText('Informe um telefone com DDD.')).toBeTruthy();

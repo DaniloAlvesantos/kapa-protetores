@@ -29,7 +29,9 @@
     "test:mobile": "npm run test --workspace=@kapa/mobile-web",
     "test:server": "npm run test --workspace=@kapa/server",
     "test:k6": "npm run test:k6 --workspace=@kapa/server",
-    "test:k6:load": "npm run test:k6:load --workspace=@kapa/server"
+    "test:k6:load": "npm run test:k6:load --workspace=@kapa/server",
+    "test:maestro": "npm run test:maestro --workspace=@kapa/mobile-web",
+    "test:maestro:web": "npm run test:maestro:web --workspace=@kapa/mobile-web"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

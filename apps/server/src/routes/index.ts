@@ -22,6 +22,7 @@ import { AdopterProfileRouter } from './AdopterProfileRouter';
 import { UserRouter } from './UserRouter';
 import { UserController } from '../controllers/UserController';
 import { UserService } from '../services/UserService';
+import { UserPhotoService } from '../services/UserPhotoService';
 import { AuthController } from '../controllers/AuthController';
 import { AuthRouter } from './AuthRouter';
 import { HealthService } from '../services/HealthService';
@@ -45,7 +46,7 @@ const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
   process.env.JWT_ISSUER ?? 'kapa-api',
   process.env.JWT_AUDIENCE ?? 'kapa-app',
-  Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
+  Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 604800,
 );
 const authMiddleware = new AuthMiddleware(jwtService);
 
@@ -54,8 +55,19 @@ const healthController = new HealthController(healthService, redisService);
 const healthRouter = new HealthRouter(healthController);
 
 const userRepository = new UserRepository(prisma);
+const storageConfig = getStorageConfig();
+const userPhotoService = new UserPhotoService(
+  prisma,
+  storageConfig.bucket,
+  storageConfig.publicUrl,
+  storageConfig.endpoint,
+  storageConfig.region,
+  storageConfig.accessKeyId,
+  storageConfig.secretAccessKey,
+);
+
 const userService = new UserService(userRepository);
-const userController = new UserController(userService);
+const userController = new UserController(userService, userPhotoService);
 const userRouter = new UserRouter(userController, authMiddleware);
 
 const authController = new AuthController(userService);
@@ -63,7 +75,6 @@ const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
 const animalService = new AnimalService(animalRepository);
-const storageConfig = getStorageConfig();
 const animalPhotoService = new AnimalPhotoService(
   prisma,
   storageConfig.bucket,

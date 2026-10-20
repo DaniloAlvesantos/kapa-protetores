@@ -369,12 +369,12 @@ O backend possui suporte a testes de carga e estresse utilizando o **Grafana k6*
 
 * **Configuração no Docker Compose (`apps/server/docker-compose.yaml`)**:
   * Serviço `k6` sob o perfil `test` (não inicializa automaticamente com `docker compose up -d`).
-  * Configurado com `network_mode: host` para comunicação direta de baixa latência com a API local (`http://localhost:4000`).
+  * Configurado com `network_mode: host` e `BASE_URL=http://localhost:4000/api` para comunicação direta com a API local (`http://localhost:4000/api`).
   * Volume montado em `./k6:/scripts`.
 
 * **Scripts Disponíveis (`apps/server/k6/`)**:
-  * `smoke-test.js`: Validação rápida (1 VU por 10s) dos endpoints `/health`, `/health/redis` e `/users/count`.
-  * `load-test.js`: Teste em estágios (rampa até 20 VUs, sustentação e desaceleração ao longo de 60s) com limiares rígidos (`p(95) < 500ms`, taxa de erro `< 5%`).
+  * `smoke-test.js`: Validação rápida (1 VU por 10s) dos endpoints `/health`, `/health/redis` e `/users/count` (`p(95) < 500ms`, taxa de erro `< 1%`). Inclui fase `setup()` para pré-aquecimento do pool de conexões com o PostgreSQL/Supabase antes da contagem das VUs.
+  * `load-test.js`: Teste em estágios (rampa até 20 VUs, sustentação e desaceleração ao longo de 60s) com limiares rígidos (`p(95) < 500ms`, taxa de erro `< 5%`) e warmup inicial via `setup()`.
 
 * **Comandos de Execução**:
   ```bash
@@ -942,6 +942,54 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 - O botão de coração da listagem e da tela de detalhes agora adiciona ou remove o pet dos favoritos da pessoa autenticada. A preferência é persistida em `tb_favorites`, já existente no banco.
 - A rota autenticada `POST /api/favorites` alterna o favorito do adotante para um animal, validando a existência do pet antes da alteração.
 - O perfil deixou de usar dados fictícios e passou a mostrar os favoritos reais retornados por `GET /api/users/me/profile`, inclusive com a contagem atualizada.
+- Caso o token JWT armazenado em cache referencie um usuário que não existe mais no banco de dados e `GET /api/users/me` ou `GET /api/users/me/profile` retorne `404 Not Found`, o interceptor em `kapaService.ts` (`shouldClearSession`) invalida a sessão obsoleta automaticamente e redireciona para `/signIn`.
 
+### 31. Tela de Doação via PIX (`/(protected)/(adopter)/pix`)
 
+* **Estrutura de Rota e Separação de Responsabilidade**:
+  * Rota registrada em [`apps/mobile-web/app/(protected)/(adopter)/pix.tsx`](apps/mobile-web/app/(protected)/(adopter)/pix.tsx) como casca fina de navegação delegando a renderização para [`PixScreen`](apps/mobile-web/src/screens/pix/index.tsx).
+  * Tela registrada no layout de pilha autenticada [`apps/mobile-web/app/(protected)/_layout.tsx`](apps/mobile-web/app/(protected)/_layout.tsx) sob o nome `(adopter)/pix`.
+* **Componente de Doação (`PixScreen`)**:
+  * **Chave PIX e Cópia Resiliente**:
+    * Integração com a biblioteca oficial `expo-clipboard` com fallback para `navigator.clipboard` na Web.
+    * Feedback visual e de acessibilidade com transição temporária de 3 segundos para o estado "Chave Copiada com Sucesso!" e limpeza preventiva de timeouts no ciclo de vida do componente (`useRef`/`useEffect`).
+  * **Sugestões de Valor e Conversão Rápida**:
+    * Chips com valores pré-definidos (R$ 10, R$ 25, R$ 50, R$ 100) utilizando `PrimaryChip`, destacando o impacto direto estimado em refeições para animais resgatados.
+  * **Transparência e Prevenção de Desistência**:
+    * Apresentação clara da Razão Social (Associação Kapa Protetores de Animais), CNPJ oficial e instituição financeira para conferência no app bancário antes de autorizar a transferência.
+* **Ponto de Entrada a partir da Tela de Apoio**:
+  * O card "Doar via PIX" em [`apps/mobile-web/src/screens/support/index.tsx`](apps/mobile-web/src/screens/support/index.tsx) foi tornado interativo com `Pressable`, navegando diretamente para a rota `/(protected)/(adopter)/pix`.
 
+### 32. Edição Completa do Perfil de Usuário (`/(protected)/(adopter)/edit-profile`)
+
+* **Estrutura de Rota e Layout**:
+  * Rota registrada em [`apps/mobile-web/app/(protected)/(adopter)/edit-profile.tsx`](apps/mobile-web/app/(protected)/(adopter)/edit-profile.tsx) conectada diretamente ao componente [`EditProfileScreen`](apps/mobile-web/src/screens/editProfile/index.tsx).
+  * Tela registrada no `Stack` autenticado em [`apps/mobile-web/app/(protected)/_layout.tsx`](apps/mobile-web/app/(protected)/_layout.tsx) sob `(adopter)/edit-profile`.
+  * Ponto de entrada configurado na aba de perfil ([`ProfileScreen`](apps/mobile-web/src/screens/profile/index.tsx)), onde o item de menu "Editar Perfil" navega para a nova rota.
+* **Componente e Lógica de Edição (`EditProfileScreen`)**:
+  * **Edição de Dados Pessoais**:
+    * Campos para edição do nome de exibição (`username`) e e-mail (`email`), com validação de formato e comprimento antes do envio.
+    * Alteração de foto de perfil (`avatar`) utilizando o componente [`FotoPicker`](apps/mobile-web/src/components/photoPicker/profile/index.tsx) com suporte à escolha a partir da galeria ou câmera nativa via `expo-image-picker`.
+    * Envio de upload multipart (`POST /api/users/me/avatar`) quando uma imagem local do dispositivo é selecionada, persistindo o arquivo no bucket S3 configurado e gerando a URL pública.
+    * Atualização atômica dos dados cadastrais via `PATCH /api/users/me` e atualização imediata do estado de sessão através do método `updateUserData` no `AuthProvider`.
+  * **Acesso às Preferências de Adoção**:
+    * Para usuários com o papel `adopter`, exibe atalho dedicado para gerenciar os critérios de compatibilidade e preferências de busca direcionando para `/(protected)/adopter-profile`.
+  * **Navegação e Cabeçalho**:
+    * Botão "Voltar" acessível no topo utilizando `ArrowLeftIcon` com detecção de histórico (`router.canGoBack() ? router.back() : router.replace('/(protected)/(tabs)/profile')`).
+* **Backend (`apps/server`)**:
+  * Schema [`updateProfileSchema`](apps/server/src/schemas/user.schema.ts): adicionado suporte para atualização de `email` com validação de formato e sanitização.
+  * Serviço [`UserService`](apps/server/src/services/UserService.ts): valida conflito de e-mail duplicado via `findByEmail` antes de atualizar o cadastro.
+  * Serviço [`UserPhotoService`](apps/server/src/services/UserPhotoService.ts): adicionado para validação de tipo MIME e upload de fotos de perfil para o storage S3 em `avatars/{userId}/`.
+  * Rota e Controlador: endpoint `POST /api/users/me/avatar` adicionado em [`UserRouter.ts`](apps/server/src/routes/UserRouter.ts) e [`UserController.ts`](apps/server/src/controllers/UserController.ts).
+* **Suíte de Testes Automatizados**:
+  * [`apps/mobile-web/test/screens/EditProfileScreen.spec.tsx`](apps/mobile-web/test/screens/EditProfileScreen.spec.tsx): valida renderização dos campos de dados pessoais, foto de perfil, validação de comprimento de nome e formato de e-mail, atalho de preferências de adoção e envio com atualização do contexto de autenticação.
+  * [`apps/server/test/routes/UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts), [`UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts), [`UserService.spec.ts`](apps/server/test/services/UserService.spec.ts) e [`schemas.spec.ts`](apps/server/test/validation/schemas.spec.ts) validados com 100% de aprovação.
+
+### 33. Testes E2E com Maestro (`apps/mobile-web/.maestro`)
+
+* **Estrutura e Configuração**:
+  * Configuração base em [`apps/mobile-web/.maestro/config.yaml`](apps/mobile-web/.maestro/config.yaml) apontando para `flows/*`.
+  * Fluxo mobile Android em [`apps/mobile-web/.maestro/flows/login-smoke.yaml`](apps/mobile-web/.maestro/flows/login-smoke.yaml) (`appId: edu.fatec.kapaprotetores.android`).
+  * Fluxo Web em [`apps/mobile-web/.maestro/flows/web-smoke.yaml`](apps/mobile-web/.maestro/flows/web-smoke.yaml) (`url: http://localhost:8081/signIn`).
+  * Scripts adicionados em [`package.json`](package.json) e [`apps/mobile-web/package.json`](apps/mobile-web/package.json): `npm run test:maestro` (Android), `npm run test:maestro:web` (Web) e `npm run maestro:studio --workspace=@kapa/mobile-web`.
+  * Padronização do ciclo de vida do JWT (`ACCESS_TOKEN_TTL_SECONDS`) para **7 dias (`604800` segundos)** em [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) e [`apps/server/.env.example`](apps/server/.env.example), alinhado com [`apps/server/src/utils/Jwt.ts`](apps/server/src/utils/Jwt.ts).
