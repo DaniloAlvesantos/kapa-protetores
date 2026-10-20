@@ -18,3 +18,12 @@ tags:
     element: "Formato de e-mail inválido"
     direction: UP
 - assertVisible: "Formato de e-mail inválido"
+- tapOn: "kapa@gmail.com"
+- inputText: "johndoe@gmail.com"
+- tapOn: "Digite sua senha"
+- inputText: "123456"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Entrar"
+    direction: DOWN
+- tapOn: "Entrar"
