@@ -3,7 +3,9 @@ import cors from 'cors';
 import { Server as HttpServer } from 'http';
 import { ApiRouter } from './routes/ApiRouter';
 import { ErrorHandler } from './middlewares/ErrorHandler';
+import { requestLogger } from './middlewares/requestLogger';
 import { ForbiddenError, NotFoundError } from './errors';
+import { logger } from './config/logger';
 
 export interface AppConfig {
   port: number;
@@ -43,6 +45,8 @@ export class App {
   }
 
   private setupMiddlewares(): void {
+    this.app.use(requestLogger);
+
     this.app.use(
       cors({
         origin: (origin, callback) => {
@@ -81,9 +85,9 @@ export class App {
 
   public listen(): HttpServer {
     this.server = this.app.listen(this.port, () => {
-      console.log(`🚀 Server running on http://localhost:${this.port}`);
-      console.log(
-        `🏥 Health check at http://localhost:${this.port}/api/health`,
+      logger.info(
+        { port: this.port, healthUrl: `http://localhost:${this.port}/api/health` },
+        `Server running on http://localhost:${this.port}`,
       );
     });
     return this.server;
