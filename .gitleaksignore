@@ -1,2 +1,4 @@
 # False positive: generic-api-key match on env.S3_SECRET_KEY in storageConfig.ts
 39fcb2e9b63fe67dc78d819f28437d7fb4ff5d39:apps/server/src/config/storageConfig.ts:generic-api-key:42
+# False positive: dummy JWT header string in unit test for logger redaction
+b3895d57d473c3fb90bd054935afcc40ec4a98c3:apps/server/test/config/logger.spec.ts:generic-api-key:94

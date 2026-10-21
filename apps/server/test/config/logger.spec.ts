@@ -91,7 +91,7 @@ describe('Centralized Pino Logger (config/logger)', () => {
         password: 'plain-password-123',
         currentPassword: 'old-password',
         newPassword: 'new-password',
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secret',
+        token: 'dummy-token-for-redaction-test', // gitleaks:allow
         accessToken: 'access-secret',
         refreshToken: 'refresh-secret',
         jwt: 'raw-jwt-token',
