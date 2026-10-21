@@ -48,6 +48,8 @@ build/
 # Coverage and testing
 coverage/
 *.log
+logs/
+apps/server/logs/
 
 # IDE
 .vscode/launch.json

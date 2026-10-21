@@ -985,3 +985,25 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Fluxo Web em [`apps/mobile-web/.maestro/flows/web-smoke.yaml`](apps/mobile-web/.maestro/flows/web-smoke.yaml) (`url: http://localhost:8081/signIn`).
   * Scripts adicionados em [`package.json`](package.json) e [`apps/mobile-web/package.json`](apps/mobile-web/package.json): `npm run test:maestro` (Android), `npm run test:maestro:web` (Web) e `npm run maestro:studio --workspace=@kapa/mobile-web`.
   * Padronização do ciclo de vida do JWT (`ACCESS_TOKEN_TTL_SECONDS`) para **7 dias (`604800` segundos)** em [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) e [`apps/server/.env.example`](apps/server/.env.example), alinhado com [`apps/server/src/utils/Jwt.ts`](apps/server/src/utils/Jwt.ts).
+
+---
+
+### 34. Sistema Centralizado de Logging (`apps/server`)
+
+* **Logger Estruturado com Pino ([`apps/server/src/config/logger.ts`](apps/server/src/config/logger.ts))**:
+  * Implementado logger centralizado em JSON com suporte aos níveis `trace`, `debug`, `info`, `warn`, `error` e `fatal`.
+  * Metadados base (`service: 'kapa-server'`, `env`) e timestamp ISO 8601 (`timestamp`), preparados para integração futura com Grafana Loki, OpenTelemetry e Datadog.
+  * **Redação de Dados Sensíveis**: campos como `password`, `currentPassword`, `newPassword`, `token`, `idToken`, `accessToken`, `refreshToken`, `authorization`, `cookie`, `set-cookie`, `jwt`, `secret`, `apiKey` e `cpf` são mascarados automaticamente com `[REDACTED]`.
+  * **Persistência, Rotação e Retenção (`pino-roll`)**:
+    * Logs gerais (`info+`) persistidos em `logs/app.<date>.<count>.log`.
+    * Logs de erro (`error+`) isolados em `logs/error.<date>.<count>.log`.
+    * Rotação diária (`LOG_FREQUENCY=daily`), limite de tamanho (`LOG_MAX_SIZE=10m`) e retenção máxima (`LOG_RETENTION_COUNT=14`) configuráveis via variáveis de ambiente.
+    * Saída formatada com `pino-pretty` no console em `development`, JSON puro em `stdout` em `production` e modo silencioso por padrão em `test`.
+* **Correlação e Middleware HTTP ([`apps/server/src/middlewares/requestLogger.ts`](apps/server/src/middlewares/requestLogger.ts))**:
+  * Propaga `X-Request-Id` validado (ou gera UUID v4) em `req.requestId` e no cabeçalho de resposta `X-Request-Id`.
+  * Registra método, rota (`originalUrl`), `statusCode`, tempo de resposta (`durationMs`), `ip`, `userAgent` e `userId` (quando autenticado) ao término de cada requisição, classificando automaticamente o nível (`info` para 2xx/3xx, `warn` para 4xx e `error` para 5xx).
+* **Integração com `ErrorHandler` e Infraestrutura**:
+  * [`ErrorHandler.ts`](apps/server/src/middlewares/ErrorHandler.ts) registra falhas com `requestId`, contexto HTTP e stack trace completo nos logs do servidor (`warn` para `HttpError` 4xx e `error` para 5xx/erros não tratados), mantendo respostas HTTP 500 genéricas (`{"message": "Internal Server Error"}`) sem expor detalhes internos ao cliente.
+  * Substituídas chamadas `console.*` por `logger` em [`index.ts`](apps/server/src/index.ts), [`PrismaService.ts`](apps/server/src/database/PrismaService.ts) e [`RedisService.ts`](apps/server/src/services/RedisService.ts).
+* **Testes Automatizados**:
+  * [`apps/server/test/config/logger.spec.ts`](apps/server/test/config/logger.spec.ts) e [`apps/server/test/middlewares/requestLogger.spec.ts`](apps/server/test/middlewares/requestLogger.spec.ts).

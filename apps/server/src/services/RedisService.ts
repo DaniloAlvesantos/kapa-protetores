@@ -1,4 +1,5 @@
 import { createClientPool, RedisClientPoolType } from 'redis';
+import { logger } from '../config/logger';
 
 function getRedisConnection(): { url: string; password?: string } {
   const configuredUrl = process.env.REDIS_URL?.trim();
@@ -29,7 +30,7 @@ const pool = createClientPool(
 );
 
 pool.on('error', (err: Error) => {
-  console.error('Redis error:', err);
+  logger.error({ err }, 'Redis error');
 });
 
 export class RedisService {
@@ -42,9 +43,9 @@ export class RedisService {
   private async connectRedis() {
     try {
       await this.pool.connect();
-      console.log('Successfully connected to Redis Pool');
+      logger.info('Successfully connected to Redis Pool');
     } catch (err) {
-      console.error('Failed to initialize Redis Pool:', err);
+      logger.error({ err }, 'Failed to initialize Redis Pool');
     }
   }
 
@@ -88,7 +89,7 @@ export class RedisService {
         EX,
       });
     } catch (err) {
-      console.error(`Error setting cache for key ${cacheKey}:`, err);
+      logger.error({ err, cacheKey }, 'Error setting cache');
     }
   }
 
@@ -107,14 +108,14 @@ export class RedisService {
       try {
         return JSON.parse(cachedData) satisfies T;
       } catch (parseError) {
-        console.warn(
-          `Cache key "${cacheKey}" could not be parsed as JSON. Returning raw string.`,
+        logger.warn(
+          { err: parseError, cacheKey },
+          'Cache key could not be parsed as JSON. Returning raw string.',
         );
-        console.error(parseError);
         return cachedData as unknown as T;
       }
     } catch (err) {
-      console.error(`Error retrieving cache for key ${cacheKey}:`, err);
+      logger.error({ err, cacheKey }, 'Error retrieving cache');
       throw err;
     }
   }
@@ -124,7 +125,7 @@ export class RedisService {
       const value = typeof data === 'string' ? data : JSON.stringify(data);
       await this.pool.hSet(key, { data: value });
     } catch (err) {
-      console.error(`Error setting hash for key ${key}:`, err);
+      logger.error({ err, key }, 'Error setting hash');
       throw err;
     }
   }
@@ -144,11 +145,11 @@ export class RedisService {
       try {
         return JSON.parse(data) satisfies T;
       } catch (err) {
-        console.error(`Error on parsing data for key ${key}: `, err);
+        logger.error({ err, key }, 'Error parsing data for hash key');
         return data as unknown as T;
       }
     } catch (err) {
-      console.error(`Error on getting hash for key ${key}: `, err);
+      logger.error({ err, key }, 'Error getting hash');
       throw err;
     }
   }
@@ -167,16 +168,16 @@ export class RedisService {
         try {
           parsedData[field] = JSON.parse(value) as T;
         } catch (err) {
-          console.error(
-            `Error parsing hash field "${field}" for key "${key}":`,
-            err,
+          logger.error(
+            { err, key, field },
+            'Error parsing hash field',
           );
           parsedData[field] = value as T;
         }
       }
       return parsedData;
     } catch (err) {
-      console.error(`Error on getting hash for key ${key}:`, err);
+      logger.error({ err, key }, 'Error getting all hash fields');
       throw err;
     }
   }

@@ -2,6 +2,7 @@ import '../config/env';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool, type PoolConfig } from 'pg';
+import { logger } from '../config/logger';
 
 export function createPostgresPoolConfig(
   connectionString: string,
@@ -32,9 +33,9 @@ export class PrismaService {
     this.pool = new Pool(createPostgresPoolConfig(connectionString));
 
     this.pool.on('error', (err) => {
-      console.error(
-        '[PrismaService] Unexpected error on idle PostgreSQL client:',
-        err,
+      logger.error(
+        { err },
+        '[PrismaService] Unexpected error on idle PostgreSQL client',
       );
     });
 
