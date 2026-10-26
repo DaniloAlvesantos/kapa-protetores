@@ -1,16 +1,23 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 import type {
+  CommunityEventType,
   UserRole,
   VolunteerApplication,
   VolunteerApplicationData,
   VolunteerApplicationStatus,
+  VolunteerAvailability,
 } from '@kapa/shared';
 
 type VolunteerApplicationRecord = {
   id: string;
   user_id: string;
   status: VolunteerApplicationStatus;
-  application_data: unknown;
+  full_name: string;
+  phone: string;
+  areas_of_interest: CommunityEventType[];
+  availability: VolunteerAvailability;
+  motivation: string;
+  accepts_terms: boolean;
   applied_at: Date;
   updated_at: Date;
   user?: {
@@ -30,7 +37,14 @@ export class VolunteerApplicationRepository {
       id: record.id,
       userId: record.user_id,
       status: record.status,
-      application: record.application_data as VolunteerApplicationData,
+      application: {
+        fullName: record.full_name,
+        phone: record.phone,
+        areasOfInterest: record.areas_of_interest,
+        availability: record.availability,
+        motivation: record.motivation,
+        acceptsTerms: record.accepts_terms,
+      },
       appliedAt: record.applied_at.toISOString(),
       updatedAt: record.updated_at.toISOString(),
       user: record.user
@@ -81,8 +95,12 @@ export class VolunteerApplicationRepository {
           return transaction.volunteerApplications.create({
             data: {
               user_id: userId,
-              application_data:
-                application as unknown as Prisma.InputJsonValue,
+              full_name: application.fullName,
+              phone: application.phone,
+              areas_of_interest: application.areasOfInterest,
+              availability: application.availability,
+              motivation: application.motivation,
+              accepts_terms: application.acceptsTerms,
             },
             include: {
               user: {
