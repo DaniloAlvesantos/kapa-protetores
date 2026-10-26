@@ -1088,3 +1088,22 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * [`apps/server/test/services/EventsService.spec.ts`](apps/server/test/services/EventsService.spec.ts), [`apps/server/test/controllers/UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts), [`apps/server/test/routes/UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts) e [`apps/mobile-web/test/screens/MyEventsScreen.spec.tsx`](apps/mobile-web/test/screens/MyEventsScreen.spec.tsx).
 * **Atualização de Segurança de CI (`scripts/audit-allowlist.json` e `.trivyignore`)**:
   * Sincronizados os novos advisories publicados no GitHub Advisory Database (`GHSA-27r3-jxmh-p828` em `body-parser`, `GHSA-q7qp-rjg7-q26m` em `multer`, `GHSA-xjj6-f33q-929c` em `undici` de dev/test e `GHSA-mrhx-c7xc-m3w5` em `zod` 3.x) em [`scripts/audit-allowlist.json`](scripts/audit-allowlist.json) e seus respectivos CVEs (`CVE-2026-111181`, `CVE-2026-113872`, `CVE-2023-54404`) em [`.trivyignore`](.trivyignore), mantendo as justificativas técnicas e mitigações ativas da API.
+
+---
+
+### 39. Fluxo de Inscrição e Aprovação de Voluntários (`tb_volunteer_applications`, `/(protected)/volunteer` e `/api/volunteer-applications`)
+
+* **Schema e Persistência (`tb_volunteer_applications` — Migration `20261026120000_add_volunteer_applications`)**:
+  * Criado o modelo `VolunteerApplications` (`@@map("tb_volunteer_applications")`) e o enum `VolunteerApplicationStatus` (`pending`, `approved`, `rejected`) em [`schema.prisma`](apps/server/prisma/schema.prisma), seguindo o mesmo padrão de engenharia de `tb_adoptions` (`id`, `user_id`, `status`, `application_data JSONB`, `applied_at`, `updated_at` e índices em `[user_id]`, `[status]` e `[user_id, status]`).
+  * [`VolunteerApplicationRepository`](apps/server/src/repositories/VolunteerApplicationRepository.ts) utiliza transações serializáveis (`Prisma.TransactionIsolationLevel.Serializable`) na criação para impedir duplicidade de solicitações pendentes, e atualiza atomicamente o `status` da candidatura junto à promoção de `role = 'volunteer'` em `tb_users` quando aprovada.
+  * `tb_events` permanece dedicada à trilha de auditoria (`VOLUNTEER_APPLICATION_SUBMITTED`, `VOLUNTEER_APPLICATION_APPROVED` e `VOLUNTEER_APPLICATION_REJECTED`) emitida pelo `EventsService`.
+* **Endpoints da API ([`VolunteerApplicationRouter.ts`](apps/server/src/routes/VolunteerApplicationRouter.ts) e [`VolunteerApplicationService.ts`](apps/server/src/services/VolunteerApplicationService.ts))**:
+  * `POST /api/volunteer-applications`: envia a ficha de voluntariado do usuário autenticado (`fullName`, `phone`, `areasOfInterest`, `availability`, `motivation`, `acceptsTerms`), bloqueando duplicidade de solicitações pendentes.
+  * `GET /api/volunteer-applications/mine`: retorna a solicitação mais recente do usuário autenticado.
+  * `GET /api/volunteer-applications`: listagem administrativa restrita a `admin` e `protector`.
+  * `PATCH /api/volunteer-applications/:id/status`: aprova (`approved`) ou recusa (`rejected`) uma candidatura de voluntariado.
+* **Telas Mobile / Web (`apps/mobile-web`)**:
+  * [`VolunteerScreen`](apps/mobile-web/src/screens/volunteer/index.tsx) (`/(protected)/volunteer`): acessível pelos cards **"Ser Voluntário"** na aba Apoiar ([`SupportScreen`](apps/mobile-web/src/screens/support/index.tsx)) e na [`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx). Exibe o formulário de inscrição, o estado "Solicitação em análise" ou o acesso direto às atividades semanais (`/(protected)/(tabs)/activities`) quando aprovado.
+  * [`VolunteerRequestsScreen`](apps/mobile-web/src/screens/volunteerRequests/index.tsx) (`/(protected)/gestao/voluntarios`): tela de análise e aprovação de voluntários para `admin` e `protector`.
+* **Testes Automatizados**:
+  * [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts) e [`apps/mobile-web/test/screens/VolunteerScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerScreen.spec.tsx).

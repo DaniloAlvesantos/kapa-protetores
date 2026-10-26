@@ -41,6 +41,10 @@ import { FavoriteRepository } from '../repositories/FavoriteRepository';
 import { FavoriteService } from '../services/FavoriteService';
 import { FavoriteController } from '../controllers/FavoriteController';
 import { FavoriteRouter } from './FavoriteRouter';
+import { VolunteerApplicationRepository } from '../repositories/VolunteerApplicationRepository';
+import { VolunteerApplicationService } from '../services/VolunteerApplicationService';
+import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
+import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -184,6 +188,17 @@ const communityEventRouter = new CommunityEventRouter(
   authMiddleware,
 );
 
+const volunteerApplicationRouter = new VolunteerApplicationRouter(
+  new VolunteerApplicationController(
+    new VolunteerApplicationService(
+      new VolunteerApplicationRepository(prisma),
+      redisService,
+      eventsService,
+    ),
+  ),
+  authMiddleware,
+);
+
 const apiRouterInstance = new ApiRouter(
   healthRouter,
   animalsRouter,
@@ -194,6 +209,7 @@ const apiRouterInstance = new ApiRouter(
   adopterProfileRouter,
   adoptionRouter,
   favoriteRouter,
+  volunteerApplicationRouter,
 );
 
 export const apiRouter = apiRouterInstance;
