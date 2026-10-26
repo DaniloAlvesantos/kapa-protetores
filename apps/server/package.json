@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "docker compose up -d redis && tsx watch src/index.ts",
-    "dev:local": "docker compose up -d database redis && tsx watch src/index.ts",
+    "dev": "npm run build --workspace=@kapa/shared && prisma generate && docker compose up -d redis && tsx watch src/index.ts",
+    "dev:local": "npm run build --workspace=@kapa/shared && prisma generate && docker compose up -d database redis && tsx watch src/index.ts",
     "db:check": "tsx scripts/check-database.ts",
     "build": "npm run build --workspace=@kapa/shared && prisma generate && tsc",
     "test": "jest",

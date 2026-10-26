@@ -1105,5 +1105,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Telas Mobile / Web (`apps/mobile-web`)**:
   * [`VolunteerScreen`](apps/mobile-web/src/screens/volunteer/index.tsx) (`/(protected)/volunteer`): acessível pelos cards **"Ser Voluntário"** na aba Apoiar ([`SupportScreen`](apps/mobile-web/src/screens/support/index.tsx)) e na [`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx). Exibe o formulário de inscrição, o estado "Solicitação em análise" ou o acesso direto às atividades semanais (`/(protected)/(tabs)/activities`) quando aprovado.
   * [`VolunteerRequestsScreen`](apps/mobile-web/src/screens/volunteerRequests/index.tsx) (`/(protected)/gestao/voluntarios`): tela de análise e aprovação de voluntários para `admin` e `protector`.
-* **Testes Automatizados**:
+* **Testes Automatizados e Infraestrutura**:
   * [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts) e [`apps/mobile-web/test/screens/VolunteerScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerScreen.spec.tsx).
+  * [`PrismaService.ts`](apps/server/src/database/PrismaService.ts) configura `transactionOptions: { maxWait: 10000, timeout: 15000 }` no `PrismaClient` para evitar erros `P2028` ao iniciar transações interativas sobre conexões remotas (Supabase), e os scripts `dev` / `dev:local` em [`apps/server/package.json`](apps/server/package.json) executam `npm run build --workspace=@kapa/shared && prisma generate` antes de iniciar o servidor.
+

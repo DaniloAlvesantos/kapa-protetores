@@ -40,7 +40,13 @@ export class PrismaService {
     });
 
     const adapter = new PrismaPg(this.pool);
-    this.client = new PrismaClient({ adapter });
+    this.client = new PrismaClient({
+      adapter,
+      transactionOptions: {
+        maxWait: 10000,
+        timeout: 15000,
+      },
+    });
   }
 
   public static getInstance(): PrismaService {
