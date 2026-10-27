@@ -1060,3 +1060,15 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Proteção contra sobrescrita do índice ativo (`isProgrammaticScrollRef`) durante animações de rolagem acionadas pelos botões anterior/próxima ou pelos indicadores de paginação (`dots`).
 * **Testes Automatizados**:
   * [`apps/mobile-web/test/components/PetCard.spec.tsx`](apps/mobile-web/test/components/PetCard.spec.tsx) e [`apps/mobile-web/test/components/PhotoCarousel.spec.tsx`](apps/mobile-web/test/components/PhotoCarousel.spec.tsx).
+
+---
+
+### 38. Testes de Carga e Performance com Grafana k6 (`apps/server/k6`)
+
+* **Infraestrutura Docker ([`apps/server/docker-compose.yaml`](apps/server/docker-compose.yaml))**:
+  * Substituído `network_mode: host` + `BASE_URL=http://localhost:4000/api` por `extra_hosts: ["host.docker.internal:host-gateway"]` e `BASE_URL=http://host.docker.internal:4000/api`, garantindo conectividade entre o container `grafana/k6` e a API local no host tanto no macOS/Windows quanto no Linux.
+  * Mapeado o diretório `./k6` tanto em `/scripts` quanto em `/k6` no container, compatibilizando os scripts npm (`npm run test:k6`, `npm run test:k6:smoke`, `npm run test:k6:load` e `npm run test:k6:animals`) na raiz do monorepo ([`package.json`](package.json)) e no workspace do servidor ([`apps/server/package.json`](apps/server/package.json)).
+* **Script de Carga de Animais ([`apps/server/k6/animals.js`](apps/server/k6/animals.js))**:
+  * Corrigida a assinatura da função padrão do k6 (`export default function (data)`) para ler `data.animalIds` retornado por `setup()`.
+  * Ajustadas as tuplas de `http.batch` para `[method, url, null, params]` (4º argumento para cabeçalhos `Authorization`), eliminando o alerta de serialização de `body` em requisições `GET`, com aquecimento inicial de cache em `setup()`.
+
