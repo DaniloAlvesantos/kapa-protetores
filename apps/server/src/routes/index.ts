@@ -41,6 +41,7 @@ import { FavoriteRepository } from '../repositories/FavoriteRepository';
 import { FavoriteService } from '../services/FavoriteService';
 import { FavoriteController } from '../controllers/FavoriteController';
 import { FavoriteRouter } from './FavoriteRouter';
+import { PredictionService } from '../services/PredictionService';
 import { VolunteerApplicationRepository } from '../repositories/VolunteerApplicationRepository';
 import { VolunteerApplicationService } from '../services/VolunteerApplicationService';
 import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
@@ -120,8 +121,10 @@ const animalPhotoService = new AnimalPhotoService(
   redisService,
 );
 
+const predictionService = new PredictionService(prisma, redisService);
+
 const animalsRouter = new AnimalsRouter(
-  new AnimalsController(animalService),
+  new AnimalsController(animalService, predictionService),
   new AnimalPhotosController(animalPhotoService),
   authMiddleware,
   animalManagementAccess(userRepository),

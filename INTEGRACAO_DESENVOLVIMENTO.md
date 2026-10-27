@@ -1107,3 +1107,16 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * [`VolunteerRequestsScreen`](apps/mobile-web/src/screens/volunteerRequests/index.tsx) (`/(protected)/gestao/voluntarios`): tela de análise e aprovação de voluntários para `admin` e `protector`.
 * **Testes Automatizados**:
   * [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts) e [`apps/mobile-web/test/screens/VolunteerScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerScreen.spec.tsx).
+
+---
+
+### 40. Predição de Orçamento Mensal do Abrigo com Modelo ONNX (`adopet_tree_model.onnx` e `PredictionService`)
+
+* **Motor de Inferência ONNX Nativo em TypeScript ([`apps/server/src/ml/onnxTreeRunner.ts`](apps/server/src/ml/onnxTreeRunner.ts) e [`apps/server/src/ml/adopet_tree_model.onnx`](apps/server/src/ml/adopet_tree_model.onnx))**:
+  * Carrega diretamente o binário `adopet_tree_model.onnx` (`TreeEnsembleRegressor` / `DecisionTreeRegressor` exportado via `skl2onnx`) e avalia a árvore de decisão em memória sem dependências nativas C++ externas.
+  * Recebe o vetor de 9 features por animal (`species`, `size`, `health_condition`, `castrated`, `vaccinated`, `dewormed`, `v10_doses`, `rabies_doses`, `deworming_doses`).
+* **Serviço e Endpoint ([`PredictionService.ts`](apps/server/src/services/PredictionService.ts) e `GET /api/animals/management/budget-prediction`)**:
+  * `predictFutureBudget()` consulta os animais não adotados (`status !== 'adopted'`), calcula o custo mensal previsto de cada animal, agrega totais por espécie (`bySpecies`) e status (`byStatus`), e armazena o resultado em cache no Redis (`animals:shelter:budget-prediction`, TTL 60s) com invalidação automática em `AnimalService.create`, `AnimalService.update` e `AdoptionService.updateStatus`.
+  * Exposto em `GET /api/animals/management/budget-prediction` para `admin`, `protector` e `volunteer`, e integrado no painel de Gestão do Abrigo ([`apps/mobile-web/src/screens/animalManagement/index.tsx`](apps/mobile-web/src/screens/animalManagement/index.tsx)).
+* **Testes Automatizados**:
+  * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts).
