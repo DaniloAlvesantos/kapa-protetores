@@ -22,6 +22,7 @@ import { UserRouter } from './UserRouter';
 import { UserController } from '../controllers/UserController';
 import { UserService } from '../services/UserService';
 import { UserPhotoService } from '../services/UserPhotoService';
+import { EventsService } from '../services/EventsService';
 import { AuthController } from '../controllers/AuthController';
 import { AuthRouter } from './AuthRouter';
 import { HealthService } from '../services/HealthService';
@@ -40,6 +41,11 @@ import { FavoriteRepository } from '../repositories/FavoriteRepository';
 import { FavoriteService } from '../services/FavoriteService';
 import { FavoriteController } from '../controllers/FavoriteController';
 import { FavoriteRouter } from './FavoriteRouter';
+import { PredictionService } from '../services/PredictionService';
+import { VolunteerApplicationRepository } from '../repositories/VolunteerApplicationRepository';
+import { VolunteerApplicationService } from '../services/VolunteerApplicationService';
+import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
+import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -82,15 +88,28 @@ const userPhotoService = new UserPhotoService(
   redisService,
 );
 
-const userService = new UserService(userRepository, redisService);
-const userController = new UserController(userService, userPhotoService);
+const eventsService = new EventsService(prisma);
+const userService = new UserService(
+  userRepository,
+  redisService,
+  eventsService,
+);
+const userController = new UserController(
+  userService,
+  userPhotoService,
+  eventsService,
+);
 const userRouter = new UserRouter(userController, authMiddleware);
 
 const authController = new AuthController(userService);
 const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
-const animalService = new AnimalService(animalRepository, redisService);
+const animalService = new AnimalService(
+  animalRepository,
+  redisService,
+  eventsService,
+);
 const animalPhotoService = new AnimalPhotoService(
   prisma,
   s3Bucket,
@@ -102,8 +121,10 @@ const animalPhotoService = new AnimalPhotoService(
   redisService,
 );
 
+const predictionService = new PredictionService(prisma, redisService);
+
 const animalsRouter = new AnimalsRouter(
-  new AnimalsController(animalService),
+  new AnimalsController(animalService, predictionService),
   new AnimalPhotosController(animalPhotoService),
   authMiddleware,
   animalManagementAccess(userRepository),
@@ -137,24 +158,47 @@ const adopterProfileRouter = new AdopterProfileRouter(
 
 const adoptionRouter = new AdoptionRouter(
   new AdoptionController(
-    new AdoptionService(new AdoptionRepository(prisma), redisService),
+    new AdoptionService(
+      new AdoptionRepository(prisma),
+      redisService,
+      eventsService,
+    ),
   ),
   authMiddleware,
 );
 
 const favoriteRouter = new FavoriteRouter(
   new FavoriteController(
-    new FavoriteService(new FavoriteRepository(prisma), redisService),
+    new FavoriteService(
+      new FavoriteRepository(prisma),
+      redisService,
+      eventsService,
+    ),
   ),
   authMiddleware,
 );
 
 const repository = new CommunityEventRepository(prisma);
-const service = new CommunityEventService(repository, redisService);
+const service = new CommunityEventService(
+  repository,
+  redisService,
+  eventsService,
+);
 const controller = new CommunityEventController(service);
 
 const communityEventRouter = new CommunityEventRouter(
   controller,
+  authMiddleware,
+);
+
+const volunteerApplicationRouter = new VolunteerApplicationRouter(
+  new VolunteerApplicationController(
+    new VolunteerApplicationService(
+      new VolunteerApplicationRepository(prisma),
+      redisService,
+      eventsService,
+    ),
+  ),
   authMiddleware,
 );
 
@@ -168,6 +212,7 @@ const apiRouterInstance = new ApiRouter(
   adopterProfileRouter,
   adoptionRouter,
   favoriteRouter,
+  volunteerApplicationRouter,
 );
 
 export const apiRouter = apiRouterInstance;
