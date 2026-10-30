@@ -8,9 +8,10 @@ tags:
     file: web-login.yaml
 
 - assertVisible: "Adotar Agora"
+- assertVisible: "Ver pets disponiveis"
 - scrollUntilVisible:
-    element:
-      text: "Macho"
-      caseSensitive: false
-    direction: DOWN
-    centerElement: true
+    element: ".* Macho .*"
+- scrollUntilVisible:
+    element: ".*Ver todos os.*"
+- tapOn: ".*Ver todos os.*"
+- waitForAnimationToEnd

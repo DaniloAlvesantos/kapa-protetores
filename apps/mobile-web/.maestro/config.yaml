@@ -1,2 +1,9 @@
 flows:
   - flows/*
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - web-smoke
+    - web-e2e-journey
+    - login-smoke
+    - mobile-e2e-journey
